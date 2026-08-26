@@ -5,12 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>内職管理</title>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK（※ここを追加） -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
+  <!-- PWA設定 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f1f5f9">
+
+  <!-- iOS Safari用設定（全画面・アイコン適用） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="内職管理">
+  <link rel="apple-touch-icon" href="box.webp">
+
+  <!-- サービスワーカー登録スクリプト -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+
   <style>
+  
     :root {
       --primary: #2563eb;
       --primary-light: #eff6ff;
