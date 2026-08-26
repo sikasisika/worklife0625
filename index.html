@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>内職かんたん管理</title>
+  <title>内職かんたん管理 (クラウド同期)</title>
+
+  <!-- Firebase SDK (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <style>
     :root {
-      --primary: #1e3a8a;      /* 濃いネイビー（見やすさ最優先） */
-      --primary-light: #dbeafe;/* 薄いブルー */
-      --accent: #059669;       /* 金額用の見やすい濃い緑 */
+      --primary: #1e3a8a;
+      --primary-light: #dbeafe;
+      --accent: #059669;
       --accent-bg: #ecfdf5;
-      --danger: #dc2626;       /* 警告・削除の赤 */
-      --text-main: #0f172a;    /* ほぼ黒でくっきり */
-      --text-sub: #475569;     /* 視認性の高いグレー */
+      --danger: #dc2626;
+      --text-main: #0f172a;
+      --text-sub: #475569;
       --bg: #f8fafc;
       --card-bg: #ffffff;
       --border: #cbd5e1;
@@ -28,11 +34,20 @@
       text-align: center;
       font-size: 1.25rem;
       font-weight: 800;
-      letter-spacing: 0.05em;
       position: sticky;
       top: 0;
       z-index: 100;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .auth-banner {
+      background: #eff6ff;
+      border-bottom: 1px solid #bfdbfe;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
     }
 
     .help-hint {
@@ -47,7 +62,6 @@
     .tab-content { display: none; padding: 16px 12px; }
     .tab-content.active { display: block; }
 
-    /* カードUI */
     .card {
       background: var(--card-bg);
       border: 2px solid var(--border);
@@ -66,7 +80,6 @@
       align-items: center;
     }
 
-    /* フォームパーツ（押しやすく大きく） */
     label { display: block; font-size: 0.95rem; font-weight: 700; color: var(--text-sub); margin-top: 12px; margin-bottom: 4px; }
     input, select {
       width: 100%;
@@ -84,13 +97,11 @@
     }
     input:disabled, select:disabled { background-color: #f1f5f9; color: #94a3b8; }
 
-    /* ボタン */
     button {
       cursor: pointer;
       font-weight: 700;
       border: none;
       border-radius: 8px;
-      transition: opacity 0.2s;
     }
     button:active { opacity: 0.7; }
     .btn-main {
@@ -105,8 +116,8 @@
     .btn-sub {
       background-color: var(--primary-light);
       color: var(--primary);
-      padding: 10px 14px;
-      font-size: 0.95rem;
+      padding: 8px 12px;
+      font-size: 0.9rem;
     }
     .btn-danger {
       background-color: #fee2e2;
@@ -122,12 +133,7 @@
       font-size: 0.95rem;
     }
 
-    /* 金額ハイライト */
-    .price-tag {
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: var(--accent);
-    }
+    .price-tag { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
     .total-banner {
       background: var(--accent-bg);
       border: 2px solid #a7f3d0;
@@ -143,7 +149,6 @@
       display: block;
     }
 
-    /* 検索結果リスト */
     .company-group {
       border: 2px solid #93c5fd;
       background: #eff6ff;
@@ -172,7 +177,6 @@
     .task-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
     .task-price { font-size: 1rem; color: var(--accent); font-weight: 800; margin-top: 2px; }
 
-    /* ボトムナビゲーション */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -205,7 +209,6 @@
     }
     .nav-icon { font-size: 1.3rem; }
 
-    /* 拡大鏡モーダル（老眼対策ダブルタップ） */
     #zoom-modal {
       display: none;
       position: fixed;
@@ -223,7 +226,6 @@
       border-radius: 16px;
       max-width: 90%;
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     .zoom-content {
       font-size: 2.2rem;
@@ -238,6 +240,12 @@
 <body>
 
   <header>内職かんたん管理</header>
+
+  <!-- クラウドログインバー -->
+  <div class="auth-banner">
+    <span id="user-status">☁️ 接続中...</span>
+    <button class="btn-sub" id="btn-auth" onclick="handleAuth()">ログイン</button>
+  </div>
   <div class="help-hint">💡 文字を素早く2回タップすると大きく拡大できます</div>
 
   <!-- タブ1: トップ (検索 & 一覧) -->
@@ -274,7 +282,7 @@
         <span class="amount">¥<span id="rec-total-price">0</span></span>
       </div>
 
-      <button class="btn-main" onclick="saveRecord()">この内容で確定・記録する</button>
+      <button class="btn-main" onclick="saveRecord()">この内容でクラウドに保存</button>
     </div>
   </div>
 
@@ -319,14 +327,14 @@
       <label>単価 (円)</label>
       <input type="number" id="new-price" placeholder="例: 3.5" step="0.1" disabled>
 
-      <button class="btn-main" id="btn-add-master" onclick="addMasterItem()" disabled>マスターに登録</button>
+      <button class="btn-main" id="btn-add-master" onclick="addMasterItem()" disabled>クラウドに登録</button>
     </div>
 
     <div class="card">
       <div class="card-title">
         <span>登録一覧</span>
         <div>
-          <button class="btn-sub" onclick="changeSort('name')">五十音順</button>
+          <button class="btn-sub" onclick="changeSort('name')">名前順</button>
           <button class="btn-sub" onclick="changeSort('price')">単価順</button>
         </div>
       </div>
@@ -342,7 +350,7 @@
     <button class="nav-btn" onclick="switchNav('manage')"><span class="nav-icon">⚙️</span>会社管理</button>
   </div>
 
-  <!-- 拡大モーダル（ダブルタップ用） -->
+  <!-- 拡大モーダル -->
   <div id="zoom-modal" onclick="closeZoom()">
     <div class="zoom-box" onclick="event.stopPropagation()">
       <div class="zoom-content" id="zoom-text"></div>
@@ -351,17 +359,82 @@
   </div>
 
   <script>
-    // データ初期構造
-    let masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [
-      { id: 1, company: '田中紙業', task: 'ギフト箱組み立て', price: 4.5 },
-      { id: 2, company: '田中紙業', task: 'シール貼り付け', price: 2.0 },
-      { id: 3, company: '佐藤パッケージ', task: '袋詰め・検品', price: 3.0 }
-    ];
-    let recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
-    let isManageLocked = true;
-    let currentSort = 'name'; // 'name' or 'price'
+    // ==========================================
+    // ▼ ここにご自身のFirebase Configを貼り付け ▼
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyDe2qsA9wEb1z3993Cz2EBJR2LY4GzUibk",
+      authDomain: "my-private-chat-d5464.firebaseapp.com",
+      projectId: "my-private-chat-d5464",
+      storageBucket: "my-private-chat-d5464.firebasestorage.app",
+      messagingSenderId: "272901563642",
+      appId: "1:272901563642:web:af2c6f6d57572e33c61543"
+    };
+    // ==========================================
 
-    // ダブルタップ拡大機能
+    // Firebase 初期化
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let masterData = [];
+    let recordData = [];
+    let isManageLocked = true;
+    let currentSort = 'name';
+
+    // 認証監視
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      if (user) {
+        document.getElementById('user-status').innerText = `☁️ 同期中: ${user.displayName || 'ユーザー'}`;
+        document.getElementById('btn-auth').innerText = 'ログアウト';
+        loadCloudData();
+      } else {
+        document.getElementById('user-status').innerText = '☁️ 未ログイン (端末のみ)';
+        document.getElementById('btn-auth').innerText = 'Googleログイン';
+        // 未ログイン時はローカルから読み出し
+        masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [];
+        recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
+        refreshAllViews();
+      }
+    });
+
+    function handleAuth() {
+      if (currentUser) {
+        auth.signOut();
+      } else {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(e => alert('ログインエラー: ' + e.message));
+      }
+    }
+
+    // クラウドからデータ取得（Firestore）
+    function loadCloudData() {
+      if (!currentUser) return;
+      const userRef = db.collection('users').doc(currentUser.uid);
+
+      // マスターデータ取得
+      userRef.collection('masters').onSnapshot(snap => {
+        masterData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        refreshAllViews();
+      });
+
+      // 記録データ取得
+      userRef.collection('records').onSnapshot(snap => {
+        recordData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderHistory();
+      });
+    }
+
+    function refreshAllViews() {
+      renderTopSearch();
+      initRecordDropdowns();
+      renderManageList();
+      renderHistory();
+    }
+
+    // ダブルタップ拡大
     let lastTap = 0;
     document.addEventListener('touchend', function (e) {
       let currentTime = new Date().getTime();
@@ -384,17 +457,11 @@
       document.getElementById('zoom-modal').classList.remove('active');
     }
 
-    // 初期化
     window.onload = function() {
       document.getElementById('work-date').valueAsDate = new Date();
       document.getElementById('filter-month').value = new Date().toISOString().slice(0, 7);
-      renderTopSearch();
-      initRecordDropdowns();
-      renderHistory();
-      renderManageList();
     };
 
-    // ナビゲーション切り替え
     function switchNav(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -407,13 +474,12 @@
       if (tabId === 'manage') renderManageList();
     }
 
-    // --- タブ1: トップ検索 ---
+    // タブ1: トップ検索
     function renderTopSearch() {
       const keyword = document.getElementById('search-box').value.trim().toLowerCase();
       const container = document.getElementById('search-results');
       container.innerHTML = '';
 
-      // 会社名ごとにグルーピング
       const grouped = {};
       masterData.forEach(item => {
         if (!grouped[item.company]) grouped[item.company] = [];
@@ -440,7 +506,7 @@
               <div class="task-name">${task.task}</div>
               <div class="task-price">単価: ¥${task.price}</div>
             </div>
-            <button class="btn-action" onclick="selectForToday('${task.company}', ${task.id})">＋ 今日やる</button>
+            <button class="btn-action" onclick="selectForToday('${task.company}', '${task.id}')">＋ 今日やる</button>
           `;
           groupEl.appendChild(taskEl);
         });
@@ -449,7 +515,6 @@
     }
 
     function selectForToday(company, taskId) {
-      // タブ2へ移動して初期セット
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-record').classList.add('active');
@@ -458,7 +523,7 @@
       initRecordDropdowns(company, taskId);
     }
 
-    // --- タブ2: 今日の記録 ---
+    // タブ2: 今日の記録
     function initRecordDropdowns(targetCompany, targetTaskId) {
       const compSelect = document.getElementById('rec-company');
       const companies = [...new Set(masterData.map(m => m.company))];
@@ -467,7 +532,6 @@
       if (targetCompany && companies.includes(targetCompany)) {
         compSelect.value = targetCompany;
       }
-
       onRecordCompanyChange(targetTaskId);
     }
 
@@ -484,8 +548,8 @@
     }
 
     function onRecordTaskChange() {
-      const taskId = parseInt(document.getElementById('rec-task').value);
-      const item = masterData.find(m => m.id === taskId);
+      const taskId = document.getElementById('rec-task').value;
+      const item = masterData.find(m => m.id == taskId);
       document.getElementById('rec-unit-price').innerText = item ? item.price : '0';
       calcRecordTotal();
     }
@@ -497,11 +561,11 @@
       document.getElementById('rec-total-price').innerText = total.toLocaleString();
     }
 
-    function saveRecord() {
+    async function saveRecord() {
       const date = document.getElementById('work-date').value;
-      const taskId = parseInt(document.getElementById('rec-task').value);
+      const taskId = document.getElementById('rec-task').value;
       const qty = parseFloat(document.getElementById('rec-qty').value);
-      const item = masterData.find(m => m.id === taskId);
+      const item = masterData.find(m => m.id == taskId);
 
       if (!date || !item || isNaN(qty) || qty <= 0) {
         alert('作業日・個数を正しく入力してください');
@@ -509,27 +573,34 @@
       }
 
       const total = Math.round(item.price * qty);
-      recordData.push({
-        id: Date.now(),
+      const newRec = {
         date,
         company: item.company,
         task: item.task,
         price: item.price,
         qty,
-        total
-      });
+        total,
+        createdAt: new Date().toISOString()
+      };
 
-      localStorage.setItem('naishoku_records', JSON.stringify(recordData));
+      if (currentUser) {
+        await db.collection('users').doc(currentUser.uid).collection('records').add(newRec);
+      } else {
+        recordData.push({ id: Date.now(), ...newRec });
+        localStorage.setItem('naishoku_records', JSON.stringify(recordData));
+        renderHistory();
+      }
+
       alert(`【記録完了】\n${item.company}\n${item.task} × ${qty}個\n合計: ¥${total.toLocaleString()}`);
     }
 
-    // --- タブ3: 伝票・履歴 ---
+    // タブ3: 伝票・履歴
     function renderHistory() {
       const month = document.getElementById('filter-month').value;
       const list = document.getElementById('history-items');
-      const filtered = recordData.filter(r => r.date.startsWith(month)).sort((a,b) => b.date.localeCompare(a.date));
+      const filtered = recordData.filter(r => r.date && r.date.startsWith(month)).sort((a,b) => b.date.localeCompare(a.date));
 
-      const monthTotal = filtered.reduce((sum, r) => sum + r.total, 0);
+      const monthTotal = filtered.reduce((sum, r) => sum + (r.total || 0), 0);
       document.getElementById('month-total-amount').innerText = monthTotal.toLocaleString();
 
       if (filtered.length === 0) {
@@ -545,22 +616,26 @@
             <div style="font-size:0.9rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">¥${r.total.toLocaleString()}</div>
-            <button class="btn-danger" style="margin-top:4px;" onclick="confirmDeleteRecord(${r.id})">削除</button>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">¥${(r.total || 0).toLocaleString()}</div>
+            <button class="btn-danger" style="margin-top:4px;" onclick="confirmDeleteRecord('${r.id}')">削除</button>
           </div>
         </div>
       `).join('');
     }
 
-    function confirmDeleteRecord(id) {
+    async function confirmDeleteRecord(id) {
       if (confirm('本当にこの記録を削除してもよろしいですか？')) {
-        recordData = recordData.filter(r => r.id !== id);
-        localStorage.setItem('naishoku_records', JSON.stringify(recordData));
-        renderHistory();
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).collection('records').doc(id).delete();
+        } else {
+          recordData = recordData.filter(r => r.id != id);
+          localStorage.setItem('naishoku_records', JSON.stringify(recordData));
+          renderHistory();
+        }
       }
     }
 
-    // --- タブ4: 管理画面 ---
+    // タブ4: 管理画面
     function toggleManageLock() {
       isManageLocked = !isManageLocked;
       document.getElementById('lock-label').innerText = isManageLocked ? '🔒 編集ロック中' : '🔓 編集可能';
@@ -580,7 +655,7 @@
       let sorted = [...masterData];
 
       if (currentSort === 'name') {
-        sorted.sort((a, b) => a.company.localeCompare(b.company, 'ja'));
+        sorted.sort((a, b) => (a.company || '').localeCompare(b.company || '', 'ja'));
       } else {
         sorted.sort((a, b) => b.price - a.price);
       }
@@ -597,12 +672,12 @@
             <div style="font-weight:700; color:var(--text-main);">${m.task}</div>
             <div style="font-size:0.95rem; font-weight:800; color:var(--accent);">単価: ¥${m.price}</div>
           </div>
-          ${!isManageLocked ? `<button class="btn-danger" onclick="confirmDeleteMaster(${m.id})">削除</button>` : ''}
+          ${!isManageLocked ? `<button class="btn-danger" onclick="confirmDeleteMaster('${m.id}')">削除</button>` : ''}
         </div>
       `).join('');
     }
 
-    function addMasterItem() {
+    async function addMasterItem() {
       const company = document.getElementById('new-comp').value.trim();
       const task = document.getElementById('new-task').value.trim();
       const price = parseFloat(document.getElementById('new-price').value);
@@ -612,24 +687,31 @@
         return;
       }
 
-      masterData.push({ id: Date.now(), company, task, price });
-      localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+      const newItem = { company, task, price };
+
+      if (currentUser) {
+        await db.collection('users').doc(currentUser.uid).collection('masters').add(newItem);
+      } else {
+        masterData.push({ id: Date.now(), ...newItem });
+        localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+        refreshAllViews();
+      }
 
       document.getElementById('new-comp').value = '';
       document.getElementById('new-task').value = '';
       document.getElementById('new-price').value = '';
-
       alert('新しく登録しました！');
-      renderManageList();
-      renderTopSearch();
     }
 
-    function confirmDeleteMaster(id) {
+    async function confirmDeleteMaster(id) {
       if (confirm('この仕事先データを削除しますか？\n（過去の伝票履歴は消えません）')) {
-        masterData = masterData.filter(m => m.id !== id);
-        localStorage.setItem('naishoku_master', JSON.stringify(masterData));
-        renderManageList();
-        renderTopSearch();
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).collection('masters').doc(id).delete();
+        } else {
+          masterData = masterData.filter(m => m.id != id);
+          localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+          refreshAllViews();
+        }
       }
     }
   </script>
