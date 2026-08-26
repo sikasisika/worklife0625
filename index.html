@@ -24,7 +24,15 @@
       --border: #cbd5e1;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; }
+    /* タップ時の青いハイライト・枠線を完全に無効化 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      -webkit-tap-highlight-color: transparent !important;
+      outline: none;
+    }
     body { background-color: var(--bg); color: var(--text-main); padding-bottom: 85px; font-size: 18px; line-height: 1.4; }
 
     /* 薄い背景・中央時計ヘッダー */
@@ -77,7 +85,7 @@
     }
 
     label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-top: 10px; margin-bottom: 3px; }
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: 12px;
       border-radius: 8px;
@@ -86,7 +94,7 @@
       color: var(--text-main);
       background-color: #fff;
     }
-    input:focus, select:focus { outline: none; border-color: var(--primary); }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
 
     button {
       cursor: pointer;
@@ -125,7 +133,7 @@
       font-size: 0.95rem;
     }
 
-    /* 検索トップ用：会社名タップバー */
+    /* 検索トップ用：会社名タップバー（矢印撤廃） */
     .company-tap-bar {
       background: #fff;
       border: 1.5px solid var(--border);
@@ -136,11 +144,8 @@
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
-      transition: background 0.1s;
     }
-    .company-tap-bar:active { background: #eff6ff; }
     .company-tap-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
-    .company-tap-arrow { font-size: 1.1rem; color: var(--primary); font-weight: bold; }
 
     /* モーダル共通（一回り小さいティップス） */
     .app-modal {
@@ -186,7 +191,6 @@
       align-items: center;
       cursor: pointer;
     }
-    .task-record-card:active { background: #f0fdf4; border-color: var(--accent); }
 
     /* 合計バナー */
     .total-banner {
@@ -266,7 +270,42 @@
       margin-bottom: 10px;
     }
 
-    /* ボトムナビ */
+    /* 電卓スタイル */
+    .calc-box {
+      background: #1e293b;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+    .calc-screen {
+      background: #0f172a;
+      color: #38bdf8;
+      font-size: 1.8rem;
+      font-weight: 900;
+      text-align: right;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+      min-height: 58px;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .calc-btn {
+      background: #334155;
+      color: #fff;
+      font-size: 1.25rem;
+      padding: 14px 0;
+      border-radius: 8px;
+    }
+    .calc-btn.op { background: #2563eb; font-weight: bold; }
+    .calc-btn.eq { background: #059669; font-weight: 900; grid-column: span 2; }
+    .calc-btn.clear { background: #dc2626; font-weight: bold; }
+
+    /* ボトムナビ（5タブ対応） */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -280,10 +319,10 @@
     }
     .nav-btn {
       flex: 1;
-      padding: 6px 2px;
+      padding: 6px 1px;
       border: none;
       background: none;
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: var(--text-sub);
       display: flex;
@@ -297,7 +336,7 @@
       background-color: #eff6ff;
       border-top: 3px solid var(--primary);
     }
-    .nav-icon { font-size: 1.25rem; }
+    .nav-icon { font-size: 1.2rem; }
   </style>
 </head>
 <body>
@@ -335,11 +374,16 @@
     </div>
   </div>
 
-  <!-- タブ3: 伝票・月別 -->
+  <!-- タブ3: 伝票・月別 (検索バーを最上部に配置) -->
   <div id="tab-invoice" class="tab-content">
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <label style="margin:0; font-size:1rem; font-weight:800;">表示年月</label>
+      <!-- 1. キーワード検索バー（最上部） -->
+      <label style="margin-top:0;">検索</label>
+      <input type="text" id="history-search-box" placeholder="キーワードを入力..." oninput="renderHistory()">
+
+      <!-- 2. 表示年月 ＆ 切替ボタン -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; margin-bottom:6px;">
+        <label style="margin:0; font-size:0.95rem; font-weight:800;">表示年月</label>
         <div>
           <button class="btn-sub" id="btn-view-list" onclick="setInvoiceView('list')" style="background:#2563eb; color:#fff;">一覧</button>
           <button class="btn-sub" id="btn-view-cal" onclick="setInvoiceView('cal')">カレンダー</button>
@@ -347,17 +391,13 @@
       </div>
       <input type="month" id="filter-month" onchange="renderHistory()">
 
-      <!-- 合計金額バナー -->
+      <!-- 3. 合計金額バナー -->
       <div class="total-banner">
         <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-sub);">当月合計</span>
         <span class="amount">¥<span id="month-total-amount">0</span></span>
       </div>
 
-      <!-- キーワード検索バー -->
-      <label>検索</label>
-      <input type="text" id="history-search-box" placeholder="キーワードを入力..." oninput="renderHistory()">
-
-      <!-- 並び替え -->
+      <!-- 4. 並び替え -->
       <label id="sort-controls-label">並び替え</label>
       <div id="sort-controls" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
         <button class="btn-sub" onclick="setHistorySort('date')">日付順</button>
@@ -365,6 +405,12 @@
         <button class="btn-sub" onclick="setHistorySort('price')">単価順</button>
         <button class="btn-sub" onclick="setHistorySort('qty')">仕事量順</button>
       </div>
+    </div>
+
+    <!-- 当月メモ表示枠（メモがある場合のみ表示） -->
+    <div class="card" id="invoice-month-memo-card" style="display:none; background:#fefce8; border-color:#fef08a;">
+      <div class="card-title" style="font-size:0.95rem; color:#854d0e; margin-bottom:4px;">📝 当月のメモ</div>
+      <div id="invoice-month-memo-text" style="font-size:0.95rem; color:#713f12; white-space:pre-wrap;"></div>
     </div>
 
     <!-- リストビュー -->
@@ -425,12 +471,83 @@
     </div>
   </div>
 
-  <!-- ボトム固定ナビゲーション -->
+  <!-- タブ5: ツール (計算機・メモ・リマインダー) -->
+  <div id="tab-tools" class="tab-content">
+    <!-- 計算機 -->
+    <div class="card">
+      <div class="card-title">計算機</div>
+      <div class="calc-box">
+        <div class="calc-screen" id="calc-display">0</div>
+        <div class="calc-grid">
+          <button class="calc-btn clear" onclick="calcInput('C')">C</button>
+          <button class="calc-btn" onclick="calcInput('(')">(</button>
+          <button class="calc-btn" onclick="calcInput(')')">)</button>
+          <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+
+          <button class="calc-btn" onclick="calcInput('7')">7</button>
+          <button class="calc-btn" onclick="calcInput('8')">8</button>
+          <button class="calc-btn" onclick="calcInput('9')">9</button>
+          <button class="calc-btn op" onclick="calcInput('*')">×</button>
+
+          <button class="calc-btn" onclick="calcInput('4')">4</button>
+          <button class="calc-btn" onclick="calcInput('5')">5</button>
+          <button class="calc-btn" onclick="calcInput('6')">6</button>
+          <button class="calc-btn op" onclick="calcInput('-')">-</button>
+
+          <button class="calc-btn" onclick="calcInput('1')">1</button>
+          <button class="calc-btn" onclick="calcInput('2')">2</button>
+          <button class="calc-btn" onclick="calcInput('3')">3</button>
+          <button class="calc-btn op" onclick="calcInput('+')">+</button>
+
+          <button class="calc-btn" onclick="calcInput('0')">0</button>
+          <button class="calc-btn" onclick="calcInput('.')">.</button>
+          <button class="calc-btn eq" onclick="calcInput('=')">=</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- メモ -->
+    <div class="card">
+      <div class="card-title">メモ帳</div>
+      <label>メモの種類</label>
+      <select id="memo-target-type" onchange="onMemoTypeChange()">
+        <option value="month">当月のメモ（伝票・月別と連動）</option>
+        <option value="general">全体・共通メモ</option>
+      </select>
+
+      <label id="memo-month-label">対象年月</label>
+      <input type="month" id="memo-month-val" onchange="loadMemoContent()">
+
+      <label>内容</label>
+      <textarea id="memo-content-input" rows="4" placeholder="納品時の注意事項や連絡メモなど..."></textarea>
+      <button class="btn-main" onclick="saveMemo()">メモを保存</button>
+    </div>
+
+    <!-- リマインダー -->
+    <div class="card">
+      <div class="card-title">リマインダー・納期管理</div>
+      <label>期日・日時</label>
+      <input type="date" id="remind-date">
+
+      <label>予定・やること</label>
+      <input type="text" id="remind-text" placeholder="例: A社 納期 1000個発送">
+
+      <button class="btn-main" onclick="addReminder()">リマインダーを追加</button>
+
+      <div class="card-title" style="margin-top:16px;">
+        <span>予定一覧</span>
+      </div>
+      <div id="reminder-list"></div>
+    </div>
+  </div>
+
+  <!-- ボトム固定ナビゲーション（5タブ） -->
   <div class="bottom-nav">
     <button class="nav-btn active" onclick="switchNav('top')"><span class="nav-icon">🔍</span>検索トップ</button>
     <button class="nav-btn" onclick="switchNav('record')"><span class="nav-icon">✏️</span>今日の記録</button>
     <button class="nav-btn" onclick="switchNav('invoice')"><span class="nav-icon">📋</span>伝票・月別</button>
     <button class="nav-btn" onclick="switchNav('manage')"><span class="nav-icon">⚙️</span>会社管理</button>
+    <button class="nav-btn" onclick="switchNav('tools')"><span class="nav-icon">🛠️</span>ツール</button>
   </div>
 
   <!-- モーダル1: トップ詳細ティップス（複数選択可能） -->
@@ -499,18 +616,20 @@
     let currentUser = null;
     let masterData = [];
     let recordData = [];
-    let selectedTodayTasks = []; // 今日の記録タブで選ばれている作業リスト
-    let currentRecordTarget = null; // モーダルで個数入力中のアイテム
+    let memoData = {}; // { 'general': '...', '2026-08': '...' }
+    let reminderData = [];
+    let selectedTodayTasks = [];
+    let currentRecordTarget = null;
     let historySortType = 'date';
-    let currentInvoiceView = 'list'; // 'list' or 'cal'
+    let currentInvoiceView = 'list';
 
-    // 日本語あいまい検索用正規化（ひらがな化・小文字化・全角半角統一）
+    // 日本語あいまい検索用正規化
     function normalizeKana(str) {
       if (!str) return '';
       return str.toString()
         .toLowerCase()
-        .replace(/[\u30a1-\u30f6]/g, match => String.fromCharCode(match.charCodeAt(0) - 0x60)) // カタカナ→ひらがな
-        .replace(/[\uff01-\uff5e]/g, match => String.fromCharCode(match.charCodeAt(0) - 0xfee0)) // 全角英数→半角
+        .replace(/[\u30a1-\u30f6]/g, match => String.fromCharCode(match.charCodeAt(0) - 0x60))
+        .replace(/[\uff01-\uff5e]/g, match => String.fromCharCode(match.charCodeAt(0) - 0xfee0))
         .replace(/\s+/g, '');
     }
 
@@ -549,6 +668,8 @@
         btn.title = '未ログイン (端末のみ保存)';
         masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [];
         recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
+        memoData = JSON.parse(localStorage.getItem('naishoku_memos')) || {};
+        reminderData = JSON.parse(localStorage.getItem('naishoku_reminders')) || [];
         refreshViews();
       }
     });
@@ -577,6 +698,18 @@
         recordData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderHistory();
       });
+
+      userRef.collection('memos').onSnapshot(snap => {
+        memoData = {};
+        snap.docs.forEach(doc => { memoData[doc.id] = doc.data().content; });
+        loadMemoContent();
+        renderInvoiceMemo();
+      });
+
+      userRef.collection('reminders').onSnapshot(snap => {
+        reminderData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderReminders();
+      });
     }
 
     function refreshViews() {
@@ -585,11 +718,16 @@
       renderCompanyHints();
       renderManageList();
       renderHistory();
+      loadMemoContent();
+      renderReminders();
     }
 
     window.onload = function() {
       document.getElementById('rec-date').valueAsDate = new Date();
-      document.getElementById('filter-month').value = new Date().toISOString().slice(0, 7);
+      document.getElementById('remind-date').valueAsDate = new Date();
+      const curMonth = new Date().toISOString().slice(0, 7);
+      document.getElementById('filter-month').value = curMonth;
+      document.getElementById('memo-month-val').value = curMonth;
     };
 
     function switchNav(tabId) {
@@ -602,6 +740,10 @@
       if (tabId === 'record') renderTodayTaskCards();
       if (tabId === 'invoice') renderHistory();
       if (tabId === 'manage') renderManageList();
+      if (tabId === 'tools') {
+        loadMemoContent();
+        renderReminders();
+      }
     }
 
     // --- タブ1: 検索トップ ---
@@ -610,7 +752,6 @@
       const container = document.getElementById('top-company-list');
       container.innerHTML = '';
 
-      // 会社名・作業名どちらかでマッチする会社を抽出
       const matchedCompanies = [...new Set(masterData.filter(m => {
         return isMatch(m.company, keyword) || isMatch(m.task, keyword);
       }).map(m => m.company))];
@@ -624,17 +765,12 @@
         const bar = document.createElement('div');
         bar.className = 'company-tap-bar';
         bar.onclick = () => openTopModal(comp);
-        bar.innerHTML = `
-          <div class="company-tap-title">${comp}</div>
-          <div class="company-tap-arrow">詳細 ＞</div>
-        `;
+        bar.innerHTML = `<div class="company-tap-title">${comp}</div>`;
         container.appendChild(bar);
       });
     }
 
-    let activeModalCompany = '';
     function openTopModal(companyName) {
-      activeModalCompany = companyName;
       document.getElementById('top-modal-comp-name').innerText = companyName;
       const taskList = document.getElementById('top-modal-task-list');
       const tasks = masterData.filter(m => m.company === companyName);
@@ -673,7 +809,6 @@
       });
 
       closeTopModal();
-      // 今日の記録タブへ移動
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-record').classList.add('active');
@@ -696,7 +831,6 @@
             <div style="font-weight:800; font-size:1.15rem; color:var(--primary);">${t.task}</div>
             <div style="font-size:0.95rem; color:var(--accent); font-weight:800;">単価: ¥${t.price}</div>
           </div>
-          <div style="font-size:1.1rem; color:var(--primary); font-weight:800;">記録する ＞</div>
         </div>
       `).join('');
     }
@@ -759,7 +893,7 @@
       alert(`【伝票に反映しました】\n${currentRecordTarget.company} - ${currentRecordTarget.task}\n¥${currentRecordTarget.price} × ${qty}個 = ¥${total.toLocaleString()}`);
     }
 
-    // --- タブ3: 伝票・月別 ＆ カレンダー ---
+    // --- タブ3: 伝票・月別 ---
     function setInvoiceView(view) {
       currentInvoiceView = view;
       document.getElementById('btn-view-list').style.background = view === 'list' ? '#2563eb' : '#eff6ff';
@@ -784,19 +918,18 @@
       const month = document.getElementById('filter-month').value;
       const searchKey = document.getElementById('history-search-box').value.trim();
 
-      // 月別データ
+      renderInvoiceMemo();
+
       let filtered = recordData.filter(r => {
         const matchMonth = r.date && r.date.startsWith(month);
         const matchKey = isMatch(r.company, searchKey) || isMatch(r.task, searchKey) || isMatch(r.date, searchKey);
         return matchMonth && matchKey;
       });
 
-      // 当月合計
       const monthTotal = filtered.reduce((sum, r) => sum + (r.total || 0), 0);
       document.getElementById('month-total-amount').innerText = monthTotal.toLocaleString();
 
       if (currentInvoiceView === 'list') {
-        // リスト描画
         filtered.sort((a, b) => {
           if (historySortType === 'date') return (b.date || '').localeCompare(a.date || '');
           if (historySortType === 'name') return (a.company || '').localeCompare(b.company || '', 'ja');
@@ -825,8 +958,21 @@
           </div>
         `).join('');
       } else {
-        // カレンダー描画
         renderCalendar(month, filtered);
+      }
+    }
+
+    function renderInvoiceMemo() {
+      const month = document.getElementById('filter-month').value;
+      const memoCard = document.getElementById('invoice-month-memo-card');
+      const memoText = document.getElementById('invoice-month-memo-text');
+      const currentMonthMemo = memoData[month];
+
+      if (currentMonthMemo && currentMonthMemo.trim()) {
+        memoText.innerText = currentMonthMemo;
+        memoCard.style.display = 'block';
+      } else {
+        memoCard.style.display = 'none';
       }
     }
 
@@ -835,7 +981,6 @@
       const [year, month] = monthStr.split('-').map(Number);
       document.getElementById('cal-year-num').innerText = year;
 
-      // 年間合計計算
       const yearRecords = recordData.filter(r => r.date && r.date.startsWith(String(year)));
       const yearTotal = yearRecords.reduce((sum, r) => sum + (r.total || 0), 0);
       document.getElementById('year-total-amount').innerText = yearTotal.toLocaleString();
@@ -854,14 +999,12 @@
       const firstDay = new Date(year, month - 1, 1).getDay();
       const totalDays = new Date(year, month, 0).getDate();
 
-      // 空白セル
       for (let i = 0; i < firstDay; i++) {
         const empty = document.createElement('div');
         empty.className = 'cal-day-cell empty';
         container.appendChild(empty);
       }
 
-      // 日付セル
       for (let day = 1; day <= totalDays; day++) {
         const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayRecords = monthRecords.filter(r => r.date === dateKey);
@@ -1004,7 +1147,6 @@
       const searchKey = document.getElementById('manage-search-box').value.trim();
       const container = document.getElementById('manage-master-list');
 
-      // 会社ごとにグルーピング
       const grouped = {};
       masterData.forEach(item => {
         if (!grouped[item.company]) grouped[item.company] = [];
@@ -1050,6 +1192,134 @@
           masterData = masterData.filter(m => m.id != id);
           localStorage.setItem('naishoku_master', JSON.stringify(masterData));
           refreshViews();
+        }
+      }
+    }
+
+    // --- タブ5: ツール (計算機・メモ・リマインダー) ---
+    // 1. 計算機ロジック
+    let calcExpression = '';
+    function calcInput(val) {
+      const display = document.getElementById('calc-display');
+      if (val === 'C') {
+        calcExpression = '';
+        display.innerText = '0';
+      } else if (val === '=') {
+        try {
+          const result = Function('"use strict";return (' + calcExpression + ')')();
+          display.innerText = result;
+          calcExpression = String(result);
+        } catch (e) {
+          display.innerText = 'Error';
+          calcExpression = '';
+        }
+      } else {
+        calcExpression += val;
+        display.innerText = calcExpression;
+      }
+    }
+
+    // 2. メモロジック
+    function onMemoTypeChange() {
+      const type = document.getElementById('memo-target-type').value;
+      const isMonth = (type === 'month');
+      document.getElementById('memo-month-label').style.display = isMonth ? 'block' : 'none';
+      document.getElementById('memo-month-val').style.display = isMonth ? 'block' : 'none';
+      loadMemoContent();
+    }
+
+    function getMemoKey() {
+      const type = document.getElementById('memo-target-type').value;
+      if (type === 'general') return 'general';
+      return document.getElementById('memo-month-val').value || new Date().toISOString().slice(0, 7);
+    }
+
+    function loadMemoContent() {
+      const key = getMemoKey();
+      document.getElementById('memo-content-input').value = memoData[key] || '';
+    }
+
+    async function saveMemo() {
+      const key = getMemoKey();
+      const content = document.getElementById('memo-content-input').value;
+
+      if (currentUser) {
+        await db.collection('users').doc(currentUser.uid).collection('memos').doc(key).set({ content });
+      } else {
+        memoData[key] = content;
+        localStorage.setItem('naishoku_memos', JSON.stringify(memoData));
+        renderInvoiceMemo();
+      }
+      alert('メモを保存しました');
+    }
+
+    // 3. リマインダーロジック
+    function renderReminders() {
+      const list = document.getElementById('reminder-list');
+      const sorted = [...reminderData].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+      if (sorted.length === 0) {
+        list.innerHTML = '<div style="padding:15px; text-align:center; color:#94a3b8;">予定はありません</div>';
+        return;
+      }
+
+      list.innerHTML = sorted.map(r => `
+        <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.85rem; color:${r.done ? '#94a3b8' : 'var(--danger)'}; font-weight:800;">期日: ${r.date}</div>
+            <div style="font-weight:700; text-decoration:${r.done ? 'line-through' : 'none'}; color:${r.done ? '#94a3b8' : 'var(--text-main)'};">${r.text}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-sub" onclick="toggleReminderDone('${r.id}')">${r.done ? '未完' : '完了'}</button>
+            <button class="btn-danger" onclick="deleteReminder('${r.id}')">削除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function addReminder() {
+      const date = document.getElementById('remind-date').value;
+      const text = document.getElementById('remind-text').value.trim();
+
+      if (!date || !text) {
+        alert('期日と予定内容を入力してください');
+        return;
+      }
+
+      const newRem = { date, text, done: false, createdAt: new Date().toISOString() };
+
+      if (currentUser) {
+        await db.collection('users').doc(currentUser.uid).collection('reminders').add(newRem);
+      } else {
+        reminderData.push({ id: Date.now(), ...newRem });
+        localStorage.setItem('naishoku_reminders', JSON.stringify(reminderData));
+        renderReminders();
+      }
+
+      document.getElementById('remind-text').value = '';
+    }
+
+    async function toggleReminderDone(id) {
+      const item = reminderData.find(r => r.id == id);
+      if (!item) return;
+
+      if (currentUser) {
+        await db.collection('users').doc(currentUser.uid).collection('reminders').doc(id).update({ done: !item.done });
+      } else {
+        item.done = !item.done;
+        localStorage.setItem('naishoku_reminders', JSON.stringify(reminderData));
+        renderReminders();
+      }
+    }
+
+    async function deleteReminder(id) {
+      if (confirm('この予定を削除しますか？')) {
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).collection('reminders').doc(id).delete();
+        } else {
+          reminderData = reminderData.filter(r => r.id != id);
+          localStorage.setItem('naishoku_reminders', JSON.stringify(reminderData));
+          renderReminders();
         }
       }
     }
