@@ -1,0 +1,15 @@
+{
+  "name": "内職管理",
+  "short_name": "内職管理",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f1f5f9",
+  "icons": [
+    {
+      "src": "box.webp",
+      "sizes": "192x192 512x512",
+      "type": "image/webp"
+    }
+  ]
+}
