@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>内職かんたん管理 (クラウド同期)</title>
+  <title>作業記録・伝票管理</title>
 
-  <!-- Firebase SDK (v9 compat) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <style>
     :root {
-      --primary: #1e3a8a;
-      --primary-light: #dbeafe;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
       --accent: #059669;
       --accent-bg: #ecfdf5;
       --danger: #dc2626;
@@ -25,77 +25,71 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; }
-    body { background-color: var(--bg); color: var(--text-main); padding-bottom: 90px; font-size: 18px; line-height: 1.5; }
+    body { background-color: var(--bg); color: var(--text-main); padding-bottom: 85px; font-size: 18px; line-height: 1.4; }
 
+    /* 薄い背景の日付・時間ヘッダー */
     header {
-      background-color: var(--primary);
-      color: #fff;
-      padding: 16px 12px;
+      background-color: #f1f5f9;
+      color: var(--text-sub);
+      padding: 12px 16px;
       text-align: center;
-      font-size: 1.25rem;
-      font-weight: 800;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 100;
-    }
-
-    .auth-banner {
-      background: #eff6ff;
-      border-bottom: 1px solid #bfdbfe;
-      padding: 8px 12px;
-      font-size: 0.85rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-weight: bold;
+    }
+    #auth-status-dot {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 12px;
+      background: #e2e8f0;
+      color: #64748b;
+    }
+    #auth-status-dot.online {
+      background: #dcfce7;
+      color: #15803d;
     }
 
-    .help-hint {
-      background: #fef3c7;
-      color: #92400e;
-      font-size: 0.85rem;
-      padding: 6px 12px;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    .tab-content { display: none; padding: 16px 12px; }
+    .tab-content { display: none; padding: 14px 12px; }
     .tab-content.active { display: block; }
 
     .card {
       background: var(--card-bg);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
     .card-title {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 800;
-      color: var(--primary);
-      margin-bottom: 12px;
+      color: var(--text-main);
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    label { display: block; font-size: 0.95rem; font-weight: 700; color: var(--text-sub); margin-top: 12px; margin-bottom: 4px; }
+    label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-top: 10px; margin-bottom: 3px; }
     input, select {
       width: 100%;
-      padding: 14px 12px;
+      padding: 12px;
       border-radius: 8px;
-      border: 2px solid var(--border);
-      font-size: 1.15rem;
+      border: 1.5px solid var(--border);
+      font-size: 1.1rem;
       color: var(--text-main);
       background-color: #fff;
     }
     input:focus, select:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15);
     }
-    input:disabled, select:disabled { background-color: #f1f5f9; color: #94a3b8; }
 
     button {
       cursor: pointer;
@@ -106,18 +100,19 @@
     button:active { opacity: 0.7; }
     .btn-main {
       width: 100%;
-      padding: 16px;
-      font-size: 1.2rem;
+      padding: 15px;
+      font-size: 1.15rem;
       background-color: var(--primary);
       color: #fff;
-      margin-top: 16px;
-      border-radius: 10px;
+      margin-top: 14px;
+      border-radius: 8px;
     }
     .btn-sub {
       background-color: var(--primary-light);
       color: var(--primary);
       padding: 8px 12px;
       font-size: 0.9rem;
+      border: 1px solid #bfdbfe;
     }
     .btn-danger {
       background-color: #fee2e2;
@@ -133,50 +128,124 @@
       font-size: 0.95rem;
     }
 
-    .price-tag { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+    /* 検索トップ用：会社名のみリスト */
+    .company-simple-item {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .company-simple-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .btn-detail-link {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 1.05rem;
+      font-weight: 800;
+      text-decoration: underline;
+      padding: 6px 8px;
+    }
+
+    /* 詳細ティップス・モーダル（画面に対して一回り小さい） */
+    #detail-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    #detail-modal.active { display: flex; }
+    .modal-box {
+      background: #fff;
+      width: 92%;
+      max-height: 80vh;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .modal-body {
+      overflow-y: auto;
+      flex: 1;
+      margin-bottom: 14px;
+    }
+    .modal-task-row {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 金額合計 */
     .total-banner {
       background: var(--accent-bg);
-      border: 2px solid #a7f3d0;
-      border-radius: 10px;
-      padding: 14px;
+      border: 1.5px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 12px;
       text-align: center;
-      margin-top: 14px;
+      margin-top: 12px;
     }
     .total-banner .amount {
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       font-weight: 900;
       color: var(--accent);
       display: block;
     }
 
-    .company-group {
-      border: 2px solid #93c5fd;
+    /* アコーディオン */
+    .accordion-header {
       background: #eff6ff;
-      border-radius: 10px;
-      margin-bottom: 14px;
-      overflow: hidden;
-    }
-    .company-header {
-      background: var(--primary-light);
-      padding: 12px 14px;
-      font-size: 1.2rem;
+      border: 1.5px solid #bfdbfe;
+      padding: 12px;
+      border-radius: 8px;
       font-weight: 800;
       color: var(--primary);
-      border-bottom: 1px solid #bfdbfe;
-    }
-    .task-item {
-      padding: 12px 14px;
-      border-bottom: 1px solid #e2e8f0;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #fff;
+      cursor: pointer;
     }
-    .task-item:last-child { border-bottom: none; }
-    .task-info { flex: 1; }
-    .task-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-    .task-price { font-size: 1rem; color: var(--accent); font-weight: 800; margin-top: 2px; }
+    .accordion-content {
+      display: none;
+      padding-top: 12px;
+    }
+    .accordion-content.open { display: block; }
 
+    /* 作業・単価入力行の複数セット */
+    .task-price-input-row {
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    /* ボトムナビ */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -184,13 +253,13 @@
       right: 0;
       background: #fff;
       display: flex;
-      border-top: 2px solid var(--border);
-      height: 75px;
+      border-top: 1.5px solid var(--border);
+      height: 70px;
       z-index: 100;
     }
     .nav-btn {
       flex: 1;
-      padding: 8px 4px;
+      padding: 6px 2px;
       border: none;
       background: none;
       font-size: 0.85rem;
@@ -200,100 +269,84 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
     }
     .nav-btn.active {
       color: var(--primary);
       background-color: #eff6ff;
       border-top: 3px solid var(--primary);
     }
-    .nav-icon { font-size: 1.3rem; }
-
-    #zoom-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-    #zoom-modal.active { display: flex; }
-    .zoom-box {
-      background: #fff;
-      padding: 24px;
-      border-radius: 16px;
-      max-width: 90%;
-      text-align: center;
-    }
-    .zoom-content {
-      font-size: 2.2rem;
-      font-weight: 900;
-      color: var(--primary);
-      line-height: 1.4;
-      word-break: break-all;
-      margin-bottom: 20px;
-    }
+    .nav-icon { font-size: 1.25rem; }
   </style>
 </head>
 <body>
 
-  <header>内職かんたん管理</header>
+  <!-- 薄い背景の日付・時間ヘッダー -->
+  <header>
+    <div id="current-clock">2026/08/26 --:--:--</div>
+    <div id="auth-status-dot" onclick="manualLoginTrigger()">☁️ 接続中</div>
+  </header>
 
-  <!-- クラウドログインバー -->
-  <div class="auth-banner">
-    <span id="user-status">☁️ 接続中...</span>
-    <button class="btn-sub" id="btn-auth" onclick="handleAuth()">ログイン</button>
-  </div>
-  <div class="help-hint">💡 文字を素早く2回タップすると大きく拡大できます</div>
-
-  <!-- タブ1: トップ (検索 & 一覧) -->
+  <!-- タブ1: 検索トップ (会社名のみ表示) -->
   <div id="tab-top" class="tab-content active">
     <div class="card">
-      <label for="search-box">会社名で検索</label>
-      <input type="text" id="search-box" placeholder="例: ○○工業（空欄ですべて表示）" oninput="renderTopSearch()">
+      <label for="top-search-box">会社名で検索</label>
+      <input type="text" id="top-search-box" placeholder="会社名を入力..." oninput="renderTopSearch()">
     </div>
-    <div id="search-results"></div>
+    <div id="top-company-list"></div>
   </div>
 
-  <!-- タブ2: 今日の確定作業記録 -->
+  <!-- タブ2: 今日の記録 -->
   <div id="tab-record" class="tab-content">
     <div class="card">
-      <div class="card-title">今日の作業を記録</div>
+      <div class="card-title">作業記録</div>
 
-      <label>作業日</label>
-      <input type="date" id="work-date">
+      <label>作業日（過去日も選択可能）</label>
+      <input type="date" id="rec-date">
 
       <label>会社名</label>
-      <select id="rec-company" onchange="onRecordCompanyChange()"></select>
+      <input type="text" id="rec-company" placeholder="会社名を入力または選択" list="company-data-list" oninput="onRecordCompanyInput()">
+      <datalist id="company-data-list"></datalist>
 
       <label>作業内容</label>
-      <select id="rec-task" onchange="onRecordTaskChange()"></select>
+      <input type="text" id="rec-task" placeholder="作業内容を入力または選択" list="task-data-list" oninput="onRecordTaskInput()">
+      <datalist id="task-data-list"></datalist>
 
-      <label>単価</label>
-      <div class="price-tag" style="padding: 6px 0;">1個あたり: ¥<span id="rec-unit-price">0</span></div>
+      <label>単価 (円)</label>
+      <input type="number" id="rec-unit-price" step="0.1" placeholder="0" oninput="calcRecordTotal()">
 
       <label>作業個数 (数量)</label>
       <input type="number" id="rec-qty" value="100" min="1" step="1" oninput="calcRecordTotal()">
 
       <div class="total-banner">
-        <span style="font-size:0.95rem; font-weight:700; color:var(--text-sub);">予想合計金額</span>
+        <span style="font-size:0.9rem; font-weight:700; color:var(--text-sub);">予想合計金額</span>
         <span class="amount">¥<span id="rec-total-price">0</span></span>
       </div>
 
-      <button class="btn-main" onclick="saveRecord()">この内容でクラウドに保存</button>
+      <button class="btn-main" onclick="saveRecord()">伝票に反映</button>
     </div>
   </div>
 
-  <!-- タブ3: 伝票・履歴管理 -->
+  <!-- タブ3: 伝票・月別 -->
   <div id="tab-invoice" class="tab-content">
     <div class="card">
-      <div class="card-title">月別合計・伝票</div>
-      <label>表示する年月</label>
+      <div class="card-title">伝票・月別管理</div>
+      <label>表示年月</label>
       <input type="month" id="filter-month" onchange="renderHistory()">
+      
+      <label>伝票内検索 (会社名・日付など)</label>
+      <input type="text" id="history-search-box" placeholder="キーワード検索..." oninput="renderHistory()">
+
+      <label>並び替え</label>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+        <button class="btn-sub" onclick="setHistorySort('date')">日付順</button>
+        <button class="btn-sub" onclick="setHistorySort('name')">会社名順</button>
+        <button class="btn-sub" onclick="setHistorySort('price')">単価順</button>
+        <button class="btn-sub" onclick="setHistorySort('qty')">仕事量順</button>
+      </div>
+
       <div class="total-banner">
-        <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-sub);">当月の合計金額</span>
+        <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-sub);">合計金額</span>
         <span class="amount">¥<span id="month-total-amount">0</span></span>
       </div>
     </div>
@@ -304,39 +357,41 @@
     </div>
   </div>
 
-  <!-- タブ4: 会社・単価の管理 -->
+  <!-- タブ4: 会社管理 -->
   <div id="tab-manage" class="tab-content">
-    <div class="card" style="background:#fefce8; border-color:#fef08a;">
-      <div class="card-title" style="margin-bottom:6px;">
-        <span id="lock-label">🔒 編集ロック中</span>
-        <button class="btn-sub" onclick="toggleManageLock()">ロック切替</button>
-      </div>
-      <p style="font-size:0.8rem; color:#713f12;">誤操作防止のため通常はロックされています。</p>
-    </div>
-
+    <!-- アコーディオン形式の追加枠 -->
     <div class="card">
-      <div class="card-title">
-        <span>＋ 新しい仕事先・作業を追加</span>
+      <div class="accordion-header" onclick="toggleAddAccordion()">
+        <span>＋ 新しい仕事先・作業内容を追加</span>
+        <span id="acc-icon">▼</span>
       </div>
-      <label>会社名</label>
-      <input type="text" id="new-comp" placeholder="例: 山田製作所" disabled>
+      <div class="accordion-content" id="add-accordion-content">
+        <label>会社名</label>
+        <input type="text" id="new-comp-name" placeholder="例: ○○工業">
 
-      <label>作業内容</label>
-      <input type="text" id="new-task" placeholder="例: 箱折り" disabled>
-
-      <label>単価 (円)</label>
-      <input type="number" id="new-price" placeholder="例: 3.5" step="0.1" disabled>
-
-      <button class="btn-main" id="btn-add-master" onclick="addMasterItem()" disabled>クラウドに登録</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">
-        <span>登録一覧</span>
-        <div>
-          <button class="btn-sub" onclick="changeSort('name')">名前順</button>
-          <button class="btn-sub" onclick="changeSort('price')">単価順</button>
+        <label style="margin-top:14px;">作業内容と単価の登録</label>
+        <div id="dynamic-task-rows">
+          <!-- 最初の1行 -->
+          <div class="task-price-input-row">
+            <label>作業内容</label>
+            <input type="text" class="input-task-item" placeholder="例: シール貼り">
+            <label>単価 (円)</label>
+            <input type="number" class="input-price-item" placeholder="例: 3.5" step="0.1">
+          </div>
         </div>
+
+        <button class="btn-sub" style="width:100%; margin-top:4px;" onclick="addTaskInputRow()">＋ 作業内容と単価の枠を追加</button>
+        <button class="btn-main" onclick="saveMasterFromAccordion()">まとめて登録する</button>
+      </div>
+    </div>
+
+    <!-- 検索と一覧 -->
+    <div class="card">
+      <label>登録会社・作業の検索</label>
+      <input type="text" id="manage-search-box" placeholder="会社名や作業名で検索..." oninput="renderManageList()">
+      
+      <div class="card-title" style="margin-top:14px;">
+        <span>登録一覧</span>
       </div>
       <div id="manage-master-list"></div>
     </div>
@@ -350,11 +405,12 @@
     <button class="nav-btn" onclick="switchNav('manage')"><span class="nav-icon">⚙️</span>会社管理</button>
   </div>
 
-  <!-- 拡大モーダル -->
-  <div id="zoom-modal" onclick="closeZoom()">
-    <div class="zoom-box" onclick="event.stopPropagation()">
-      <div class="zoom-content" id="zoom-text"></div>
-      <button class="btn-main" onclick="closeZoom()" style="margin:0; padding:10px 20px;">閉じる</button>
+  <!-- 詳細ティップス（ポップアップ） -->
+  <div id="detail-modal" onclick="closeDetailModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header" id="modal-comp-name">会社名</div>
+      <div class="modal-body" id="modal-task-list"></div>
+      <button class="btn-sub" style="width:100%;" onclick="closeDetailModal()">閉じる</button>
     </div>
   </div>
 
@@ -363,12 +419,12 @@
     // ▼ ここにご自身のFirebase Configを貼り付け ▼
     // ==========================================
     const firebaseConfig = {
-      apiKey: "AIzaSyDe2qsA9wEb1z3993Cz2EBJR2LY4GzUibk",
-      authDomain: "my-private-chat-d5464.firebaseapp.com",
-      projectId: "my-private-chat-d5464",
-      storageBucket: "my-private-chat-d5464.firebasestorage.app",
-      messagingSenderId: "272901563642",
-      appId: "1:272901563642:web:af2c6f6d57572e33c61543"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
     // ==========================================
 
@@ -380,85 +436,74 @@
     let currentUser = null;
     let masterData = [];
     let recordData = [];
-    let isManageLocked = true;
-    let currentSort = 'name';
+    let historySortType = 'date'; // 'date', 'name', 'price', 'qty'
 
-    // 認証監視
+    // 時計の更新
+    function updateClock() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const h = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      const day = days[now.getDay()];
+      document.getElementById('current-clock').innerText = `${y}/${m}/${d}(${day}) ${h}:${min}:${s}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 認証監視（自動ログイン）
     auth.onAuthStateChanged(user => {
       currentUser = user;
+      const dot = document.getElementById('auth-status-dot');
       if (user) {
-        document.getElementById('user-status').innerText = `☁️ 同期中: ${user.displayName || 'ユーザー'}`;
-        document.getElementById('btn-auth').innerText = 'ログアウト';
+        dot.className = 'online';
+        dot.innerText = '☁️ クラウド同期中';
         loadCloudData();
       } else {
-        document.getElementById('user-status').innerText = '☁️ 未ログイン (端末のみ)';
-        document.getElementById('btn-auth').innerText = 'Googleログイン';
-        // 未ログイン時はローカルから読み出し
+        dot.className = '';
+        dot.innerText = '☁️ タップでログイン';
         masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [];
         recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
-        refreshAllViews();
+        refreshViews();
       }
     });
 
-    function handleAuth() {
-      if (currentUser) {
-        auth.signOut();
-      } else {
+    function manualLoginTrigger() {
+      if (!currentUser) {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).catch(e => alert('ログインエラー: ' + e.message));
+      } else {
+        if (confirm('ログアウトしますか？')) auth.signOut();
       }
     }
 
-    // クラウドからデータ取得（Firestore）
     function loadCloudData() {
       if (!currentUser) return;
       const userRef = db.collection('users').doc(currentUser.uid);
 
-      // マスターデータ取得
       userRef.collection('masters').onSnapshot(snap => {
         masterData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        refreshAllViews();
+        refreshViews();
       });
 
-      // 記録データ取得
       userRef.collection('records').onSnapshot(snap => {
         recordData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderHistory();
       });
     }
 
-    function refreshAllViews() {
+    function refreshViews() {
       renderTopSearch();
-      initRecordDropdowns();
+      updateDataLists();
       renderManageList();
       renderHistory();
     }
 
-    // ダブルタップ拡大
-    let lastTap = 0;
-    document.addEventListener('touchend', function (e) {
-      let currentTime = new Date().getTime();
-      let tapLength = currentTime - lastTap;
-      if (tapLength < 300 && tapLength > 0) {
-        let text = e.target.innerText || e.target.value;
-        if (text && text.length < 50) {
-          showZoom(text);
-          e.preventDefault();
-        }
-      }
-      lastTap = currentTime;
-    });
-
-    function showZoom(text) {
-      document.getElementById('zoom-text').innerText = text;
-      document.getElementById('zoom-modal').classList.add('active');
-    }
-    function closeZoom() {
-      document.getElementById('zoom-modal').classList.remove('active');
-    }
-
     window.onload = function() {
-      document.getElementById('work-date').valueAsDate = new Date();
+      document.getElementById('rec-date').valueAsDate = new Date();
       document.getElementById('filter-month').value = new Date().toISOString().slice(0, 7);
     };
 
@@ -469,142 +514,167 @@
       event.currentTarget.classList.add('active');
 
       if (tabId === 'top') renderTopSearch();
-      if (tabId === 'record') initRecordDropdowns();
       if (tabId === 'invoice') renderHistory();
       if (tabId === 'manage') renderManageList();
     }
 
-    // タブ1: トップ検索
+    // --- タブ1: 検索トップ (会社名のみ) ---
     function renderTopSearch() {
-      const keyword = document.getElementById('search-box').value.trim().toLowerCase();
-      const container = document.getElementById('search-results');
+      const keyword = document.getElementById('top-search-box').value.trim().toLowerCase();
+      const container = document.getElementById('top-company-list');
       container.innerHTML = '';
 
-      const grouped = {};
-      masterData.forEach(item => {
-        if (!grouped[item.company]) grouped[item.company] = [];
-        grouped[item.company].push(item);
-      });
+      const uniqueCompanies = [...new Set(masterData.map(m => m.company))].filter(c => c && c.toLowerCase().includes(keyword));
 
-      const companies = Object.keys(grouped).filter(c => c.toLowerCase().includes(keyword));
-
-      if (companies.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b; font-weight:bold;">該当する会社がありません</div>';
+      if (uniqueCompanies.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;">該当する会社がありません</div>';
         return;
       }
 
-      companies.forEach(company => {
-        const groupEl = document.createElement('div');
-        groupEl.className = 'company-group';
-        groupEl.innerHTML = `<div class="company-header">${company}</div>`;
-
-        grouped[company].forEach(task => {
-          const taskEl = document.createElement('div');
-          taskEl.className = 'task-item';
-          taskEl.innerHTML = `
-            <div class="task-info">
-              <div class="task-name">${task.task}</div>
-              <div class="task-price">単価: ¥${task.price}</div>
-            </div>
-            <button class="btn-action" onclick="selectForToday('${task.company}', '${task.id}')">＋ 今日やる</button>
-          `;
-          groupEl.appendChild(taskEl);
-        });
-        container.appendChild(groupEl);
+      uniqueCompanies.forEach(comp => {
+        const row = document.createElement('div');
+        row.className = 'company-simple-item';
+        row.innerHTML = `
+          <div class="company-simple-name">${comp}</div>
+          <button class="btn-detail-link" onclick="openDetailModal('${comp}')">詳細</button>
+        `;
+        container.appendChild(row);
       });
     }
 
-    function selectForToday(company, taskId) {
+    // 詳細ティップス（ポップアップ）
+    function openDetailModal(companyName) {
+      document.getElementById('modal-comp-name').innerText = companyName;
+      const taskList = document.getElementById('modal-task-list');
+      const tasks = masterData.filter(m => m.company === companyName);
+
+      taskList.innerHTML = tasks.map(t => `
+        <div class="modal-task-row">
+          <div>
+            <div style="font-weight:700;">${t.task}</div>
+            <div style="font-size:0.95rem; color:var(--accent); font-weight:800;">単価: ¥${t.price}</div>
+          </div>
+          <button class="btn-action" onclick="applyToToday('${companyName}', '${t.task}', ${t.price})">＋ 今日やる</button>
+        </div>
+      `).join('');
+
+      document.getElementById('detail-modal').classList.add('active');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.remove('active');
+    }
+
+    function applyToToday(comp, task, price) {
+      closeDetailModal();
+      document.getElementById('rec-company').value = comp;
+      document.getElementById('rec-task').value = task;
+      document.getElementById('rec-unit-price').value = price;
+      calcRecordTotal();
+
+      // タブ2へ移動
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-record').classList.add('active');
       document.querySelectorAll('.nav-btn')[1].classList.add('active');
-
-      initRecordDropdowns(company, taskId);
     }
 
-    // タブ2: 今日の記録
-    function initRecordDropdowns(targetCompany, targetTaskId) {
-      const compSelect = document.getElementById('rec-company');
-      const companies = [...new Set(masterData.map(m => m.company))];
+    // --- タブ2: 今日の記録 ---
+    function updateDataLists() {
+      const compList = document.getElementById('company-data-list');
+      const uniqueComps = [...new Set(masterData.map(m => m.company))];
+      compList.innerHTML = uniqueComps.map(c => `<option value="${c}">`).join('');
+    }
 
-      compSelect.innerHTML = companies.map(c => `<option value="${c}">${c}</option>`).join('');
-      if (targetCompany && companies.includes(targetCompany)) {
-        compSelect.value = targetCompany;
+    function onRecordCompanyInput() {
+      const compVal = document.getElementById('rec-company').value;
+      const tasks = masterData.filter(m => m.company === compVal);
+      const taskList = document.getElementById('task-data-list');
+      taskList.innerHTML = tasks.map(t => `<option value="${t.task}">`).join('');
+      onRecordTaskInput();
+    }
+
+    function onRecordTaskInput() {
+      const compVal = document.getElementById('rec-company').value;
+      const taskVal = document.getElementById('rec-task').value;
+      const match = masterData.find(m => m.company === compVal && m.task === taskVal);
+      if (match) {
+        document.getElementById('rec-unit-price').value = match.price;
       }
-      onRecordCompanyChange(targetTaskId);
-    }
-
-    function onRecordCompanyChange(targetTaskId) {
-      const comp = document.getElementById('rec-company').value;
-      const tasks = masterData.filter(m => m.company === comp);
-      const taskSelect = document.getElementById('rec-task');
-
-      taskSelect.innerHTML = tasks.map(t => `<option value="${t.id}">${t.task}</option>`).join('');
-      if (targetTaskId) {
-        taskSelect.value = targetTaskId;
-      }
-      onRecordTaskChange();
-    }
-
-    function onRecordTaskChange() {
-      const taskId = document.getElementById('rec-task').value;
-      const item = masterData.find(m => m.id == taskId);
-      document.getElementById('rec-unit-price').innerText = item ? item.price : '0';
       calcRecordTotal();
     }
 
     function calcRecordTotal() {
-      const price = parseFloat(document.getElementById('rec-unit-price').innerText) || 0;
+      const price = parseFloat(document.getElementById('rec-unit-price').value) || 0;
       const qty = parseFloat(document.getElementById('rec-qty').value) || 0;
-      const total = Math.round(price * qty);
-      document.getElementById('rec-total-price').innerText = total.toLocaleString();
+      document.getElementById('rec-total-price').innerText = Math.round(price * qty).toLocaleString();
     }
 
     async function saveRecord() {
-      const date = document.getElementById('work-date').value;
-      const taskId = document.getElementById('rec-task').value;
+      const date = document.getElementById('rec-date').value;
+      const company = document.getElementById('rec-company').value.trim();
+      const task = document.getElementById('rec-task').value.trim();
+      const price = parseFloat(document.getElementById('rec-unit-price').value);
       const qty = parseFloat(document.getElementById('rec-qty').value);
-      const item = masterData.find(m => m.id == taskId);
 
-      if (!date || !item || isNaN(qty) || qty <= 0) {
-        alert('作業日・個数を正しく入力してください');
+      if (!date || !company || !task || isNaN(price) || isNaN(qty) || qty <= 0) {
+        alert('全ての項目を正しく入力してください');
         return;
       }
 
-      const total = Math.round(item.price * qty);
-      const newRec = {
-        date,
-        company: item.company,
-        task: item.task,
-        price: item.price,
-        qty,
-        total,
-        createdAt: new Date().toISOString()
-      };
+      // 過去日チェック
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (date < todayStr) {
+        if (!confirm(`【確認】今日より前の過去の日付（${date}）になっていますが、このまま伝票に反映しますか？`)) {
+          return;
+        }
+      }
+
+      const total = Math.round(price * qty);
+      const newRecord = { date, company, task, price, qty, total, createdAt: new Date().toISOString() };
 
       if (currentUser) {
-        await db.collection('users').doc(currentUser.uid).collection('records').add(newRec);
+        await db.collection('users').doc(currentUser.uid).collection('records').add(newRecord);
       } else {
-        recordData.push({ id: Date.now(), ...newRec });
+        recordData.push({ id: Date.now(), ...newRecord });
         localStorage.setItem('naishoku_records', JSON.stringify(recordData));
         renderHistory();
       }
 
-      alert(`【記録完了】\n${item.company}\n${item.task} × ${qty}個\n合計: ¥${total.toLocaleString()}`);
+      alert(`【伝票に反映しました】\n${date}\n${company} - ${task}\n¥${price} × ${qty}個 = ¥${total.toLocaleString()}`);
     }
 
-    // タブ3: 伝票・履歴
+    // --- タブ3: 伝票・月別 ---
+    function setHistorySort(type) {
+      historySortType = type;
+      renderHistory();
+    }
+
     function renderHistory() {
       const month = document.getElementById('filter-month').value;
+      const searchKey = (document.getElementById('history-search-box').value || '').trim().toLowerCase();
       const list = document.getElementById('history-items');
-      const filtered = recordData.filter(r => r.date && r.date.startsWith(month)).sort((a,b) => b.date.localeCompare(a.date));
 
-      const monthTotal = filtered.reduce((sum, r) => sum + (r.total || 0), 0);
-      document.getElementById('month-total-amount').innerText = monthTotal.toLocaleString();
+      let filtered = recordData.filter(r => {
+        const matchMonth = r.date && r.date.startsWith(month);
+        const matchKeyword = !searchKey || (r.company && r.company.toLowerCase().includes(searchKey)) || (r.task && r.task.toLowerCase().includes(searchKey)) || (r.date && r.date.includes(searchKey));
+        return matchMonth && matchKeyword;
+      });
+
+      // 並び替え
+      filtered.sort((a, b) => {
+        if (historySortType === 'date') return (b.date || '').localeCompare(a.date || '');
+        if (historySortType === 'name') return (a.company || '').localeCompare(b.company || '', 'ja');
+        if (historySortType === 'price') return (b.price || 0) - (a.price || 0);
+        if (historySortType === 'qty') return (b.qty || 0) - (a.qty || 0);
+        return 0;
+      });
+
+      const total = filtered.reduce((sum, r) => sum + (r.total || 0), 0);
+      document.getElementById('month-total-amount').innerText = total.toLocaleString();
 
       if (filtered.length === 0) {
-        list.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">この月の記録はありません</div>';
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">該当する記録がありません</div>';
         return;
       }
 
@@ -617,14 +687,14 @@
           </div>
           <div style="text-align:right;">
             <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">¥${(r.total || 0).toLocaleString()}</div>
-            <button class="btn-danger" style="margin-top:4px;" onclick="confirmDeleteRecord('${r.id}')">削除</button>
+            <button class="btn-danger" style="margin-top:4px;" onclick="deleteRecordItem('${r.id}')">削除</button>
           </div>
         </div>
       `).join('');
     }
 
-    async function confirmDeleteRecord(id) {
-      if (confirm('本当にこの記録を削除してもよろしいですか？')) {
+    async function deleteRecordItem(id) {
+      if (confirm('この記録を削除しますか？')) {
         if (currentUser) {
           await db.collection('users').doc(currentUser.uid).collection('records').doc(id).delete();
         } else {
@@ -635,82 +705,119 @@
       }
     }
 
-    // タブ4: 管理画面
-    function toggleManageLock() {
-      isManageLocked = !isManageLocked;
-      document.getElementById('lock-label').innerText = isManageLocked ? '🔒 編集ロック中' : '🔓 編集可能';
-      ['new-comp', 'new-task', 'new-price', 'btn-add-master'].forEach(id => {
-        document.getElementById(id).disabled = isManageLocked;
-      });
-      renderManageList();
-    }
-
-    function changeSort(type) {
-      currentSort = type;
-      renderManageList();
-    }
-
-    function renderManageList() {
-      const container = document.getElementById('manage-master-list');
-      let sorted = [...masterData];
-
-      if (currentSort === 'name') {
-        sorted.sort((a, b) => (a.company || '').localeCompare(b.company || '', 'ja'));
+    // --- タブ4: 会社管理 ---
+    function toggleAddAccordion() {
+      const content = document.getElementById('add-accordion-content');
+      const icon = document.getElementById('acc-icon');
+      const isOpen = content.classList.contains('open');
+      if (isOpen) {
+        content.classList.remove('open');
+        icon.innerText = '▼';
       } else {
-        sorted.sort((a, b) => b.price - a.price);
+        content.classList.add('open');
+        icon.innerText = '▲';
       }
+    }
 
-      if (sorted.length === 0) {
-        container.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">登録されている会社はありません</div>';
+    function addTaskInputRow() {
+      const container = document.getElementById('dynamic-task-rows');
+      const row = document.createElement('div');
+      row.className = 'task-price-input-row';
+      row.innerHTML = `
+        <label>作業内容</label>
+        <input type="text" class="input-task-item" placeholder="例: 袋詰め">
+        <label>単価 (円)</label>
+        <input type="number" class="input-price-item" placeholder="例: 2.0" step="0.1">
+      `;
+      container.appendChild(row);
+    }
+
+    async function saveMasterFromAccordion() {
+      const company = document.getElementById('new-comp-name').value.trim();
+      if (!company) {
+        alert('会社名を入力してください');
         return;
       }
 
-      container.innerHTML = sorted.map(m => `
+      const taskInputs = document.querySelectorAll('.input-task-item');
+      const priceInputs = document.querySelectorAll('.input-price-item');
+      const itemsToAdd = [];
+
+      for (let i = 0; i < taskInputs.length; i++) {
+        const task = taskInputs[i].value.trim();
+        const price = parseFloat(priceInputs[i].value);
+        if (task && !isNaN(price)) {
+          itemsToAdd.push({ company, task, price });
+        }
+      }
+
+      if (itemsToAdd.length === 0) {
+        alert('作業内容と単価を少なくとも1組入力してください');
+        return;
+      }
+
+      if (currentUser) {
+        const batch = db.batch();
+        itemsToAdd.forEach(item => {
+          const docRef = db.collection('users').doc(currentUser.uid).collection('masters').doc();
+          batch.set(docRef, item);
+        });
+        await batch.commit();
+      } else {
+        itemsToAdd.forEach(item => {
+          masterData.push({ id: Date.now() + Math.random(), ...item });
+        });
+        localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+        refreshViews();
+      }
+
+      // 入力欄リセット
+      document.getElementById('new-comp-name').value = '';
+      document.getElementById('dynamic-task-rows').innerHTML = `
+        <div class="task-price-input-row">
+          <label>作業内容</label>
+          <input type="text" class="input-task-item" placeholder="例: シール貼り">
+          <label>単価 (円)</label>
+          <input type="number" class="input-price-item" placeholder="例: 3.5" step="0.1">
+        </div>
+      `;
+      toggleAddAccordion();
+      alert(`【登録完了】${company} の作業を ${itemsToAdd.length} 件追加しました`);
+    }
+
+    function renderManageList() {
+      const searchKey = (document.getElementById('manage-search-box').value || '').trim().toLowerCase();
+      const container = document.getElementById('manage-master-list');
+
+      let filtered = masterData.filter(m => {
+        return !searchKey || (m.company && m.company.toLowerCase().includes(searchKey)) || (m.task && m.task.toLowerCase().includes(searchKey));
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">登録されている会社・作業はありません</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(m => `
         <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-weight:800; font-size:1.1rem; color:var(--primary);">${m.company}</div>
             <div style="font-weight:700; color:var(--text-main);">${m.task}</div>
             <div style="font-size:0.95rem; font-weight:800; color:var(--accent);">単価: ¥${m.price}</div>
           </div>
-          ${!isManageLocked ? `<button class="btn-danger" onclick="confirmDeleteMaster('${m.id}')">削除</button>` : ''}
+          <button class="btn-danger" onclick="deleteMasterItem('${m.id}')">削除</button>
         </div>
       `).join('');
     }
 
-    async function addMasterItem() {
-      const company = document.getElementById('new-comp').value.trim();
-      const task = document.getElementById('new-task').value.trim();
-      const price = parseFloat(document.getElementById('new-price').value);
-
-      if (!company || !task || isNaN(price)) {
-        alert('会社名、作業内容、単価をすべて正しく入力してください');
-        return;
-      }
-
-      const newItem = { company, task, price };
-
-      if (currentUser) {
-        await db.collection('users').doc(currentUser.uid).collection('masters').add(newItem);
-      } else {
-        masterData.push({ id: Date.now(), ...newItem });
-        localStorage.setItem('naishoku_master', JSON.stringify(masterData));
-        refreshAllViews();
-      }
-
-      document.getElementById('new-comp').value = '';
-      document.getElementById('new-task').value = '';
-      document.getElementById('new-price').value = '';
-      alert('新しく登録しました！');
-    }
-
-    async function confirmDeleteMaster(id) {
-      if (confirm('この仕事先データを削除しますか？\n（過去の伝票履歴は消えません）')) {
+    async function deleteMasterItem(id) {
+      if (confirm('この仕事先・単価データを削除しますか？\n（過去の伝票記録は消えません）')) {
         if (currentUser) {
           await db.collection('users').doc(currentUser.uid).collection('masters').doc(id).delete();
         } else {
           masterData = masterData.filter(m => m.id != id);
           localStorage.setItem('naishoku_master', JSON.stringify(masterData));
-          refreshAllViews();
+          refreshViews();
         }
       }
     }
