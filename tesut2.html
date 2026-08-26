@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>内職かんたん管理</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;      /* 濃いネイビー（見やすさ最優先） */
+      --primary-light: #dbeafe;/* 薄いブルー */
+      --accent: #059669;       /* 金額用の見やすい濃い緑 */
+      --accent-bg: #ecfdf5;
+      --danger: #dc2626;       /* 警告・削除の赤 */
+      --text-main: #0f172a;    /* ほぼ黒でくっきり */
+      --text-sub: #475569;     /* 視認性の高いグレー */
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; }
+    body { background-color: var(--bg); color: var(--text-main); padding-bottom: 90px; font-size: 18px; line-height: 1.5; }
+
+    header {
+      background-color: var(--primary);
+      color: #fff;
+      padding: 16px 12px;
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .help-hint {
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .tab-content { display: none; padding: 16px 12px; }
+    .tab-content.active { display: block; }
+
+    /* カードUI */
+    .card {
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* フォームパーツ（押しやすく大きく） */
+    label { display: block; font-size: 0.95rem; font-weight: 700; color: var(--text-sub); margin-top: 12px; margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      padding: 14px 12px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      font-size: 1.15rem;
+      color: var(--text-main);
+      background-color: #fff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15);
+    }
+    input:disabled, select:disabled { background-color: #f1f5f9; color: #94a3b8; }
+
+    /* ボタン */
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      transition: opacity 0.2s;
+    }
+    button:active { opacity: 0.7; }
+    .btn-main {
+      width: 100%;
+      padding: 16px;
+      font-size: 1.2rem;
+      background-color: var(--primary);
+      color: #fff;
+      margin-top: 16px;
+      border-radius: 10px;
+    }
+    .btn-sub {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      padding: 10px 14px;
+      font-size: 0.95rem;
+    }
+    .btn-danger {
+      background-color: #fee2e2;
+      color: var(--danger);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      border: 1px solid #fca5a5;
+    }
+    .btn-action {
+      background-color: var(--accent);
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 0.95rem;
+    }
+
+    /* 金額ハイライト */
+    .price-tag {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .total-banner {
+      background: var(--accent-bg);
+      border: 2px solid #a7f3d0;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      margin-top: 14px;
+    }
+    .total-banner .amount {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--accent);
+      display: block;
+    }
+
+    /* 検索結果リスト */
+    .company-group {
+      border: 2px solid #93c5fd;
+      background: #eff6ff;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .company-header {
+      background: var(--primary-light);
+      padding: 12px 14px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--primary);
+      border-bottom: 1px solid #bfdbfe;
+    }
+    .task-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-info { flex: 1; }
+    .task-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+    .task-price { font-size: 1rem; color: var(--accent); font-weight: 800; margin-top: 2px; }
+
+    /* ボトムナビゲーション */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      display: flex;
+      border-top: 2px solid var(--border);
+      height: 75px;
+      z-index: 100;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: none;
+      background: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 3px;
+    }
+    .nav-btn.active {
+      color: var(--primary);
+      background-color: #eff6ff;
+      border-top: 3px solid var(--primary);
+    }
+    .nav-icon { font-size: 1.3rem; }
+
+    /* 拡大鏡モーダル（老眼対策ダブルタップ） */
+    #zoom-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    #zoom-modal.active { display: flex; }
+    .zoom-box {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .zoom-content {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1.4;
+      word-break: break-all;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>内職かんたん管理</header>
+  <div class="help-hint">💡 文字を素早く2回タップすると大きく拡大できます</div>
+
+  <!-- タブ1: トップ (検索 & 一覧) -->
+  <div id="tab-top" class="tab-content active">
+    <div class="card">
+      <label for="search-box">会社名で検索</label>
+      <input type="text" id="search-box" placeholder="例: ○○工業（空欄ですべて表示）" oninput="renderTopSearch()">
+    </div>
+    <div id="search-results"></div>
+  </div>
+
+  <!-- タブ2: 今日の確定作業記録 -->
+  <div id="tab-record" class="tab-content">
+    <div class="card">
+      <div class="card-title">今日の作業を記録</div>
+
+      <label>作業日</label>
+      <input type="date" id="work-date">
+
+      <label>会社名</label>
+      <select id="rec-company" onchange="onRecordCompanyChange()"></select>
+
+      <label>作業内容</label>
+      <select id="rec-task" onchange="onRecordTaskChange()"></select>
+
+      <label>単価</label>
+      <div class="price-tag" style="padding: 6px 0;">1個あたり: ¥<span id="rec-unit-price">0</span></div>
+
+      <label>作業個数 (数量)</label>
+      <input type="number" id="rec-qty" value="100" min="1" step="1" oninput="calcRecordTotal()">
+
+      <div class="total-banner">
+        <span style="font-size:0.95rem; font-weight:700; color:var(--text-sub);">予想合計金額</span>
+        <span class="amount">¥<span id="rec-total-price">0</span></span>
+      </div>
+
+      <button class="btn-main" onclick="saveRecord()">この内容で確定・記録する</button>
+    </div>
+  </div>
+
+  <!-- タブ3: 伝票・履歴管理 -->
+  <div id="tab-invoice" class="tab-content">
+    <div class="card">
+      <div class="card-title">月別合計・伝票</div>
+      <label>表示する年月</label>
+      <input type="month" id="filter-month" onchange="renderHistory()">
+      <div class="total-banner">
+        <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-sub);">当月の合計金額</span>
+        <span class="amount">¥<span id="month-total-amount">0</span></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">作業記録一覧</div>
+      <div id="history-items"></div>
+    </div>
+  </div>
+
+  <!-- タブ4: 会社・単価の管理 -->
+  <div id="tab-manage" class="tab-content">
+    <div class="card" style="background:#fefce8; border-color:#fef08a;">
+      <div class="card-title" style="margin-bottom:6px;">
+        <span id="lock-label">🔒 編集ロック中</span>
+        <button class="btn-sub" onclick="toggleManageLock()">ロック切替</button>
+      </div>
+      <p style="font-size:0.8rem; color:#713f12;">誤操作防止のため通常はロックされています。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>＋ 新しい仕事先・作業を追加</span>
+      </div>
+      <label>会社名</label>
+      <input type="text" id="new-comp" placeholder="例: 山田製作所" disabled>
+
+      <label>作業内容</label>
+      <input type="text" id="new-task" placeholder="例: 箱折り" disabled>
+
+      <label>単価 (円)</label>
+      <input type="number" id="new-price" placeholder="例: 3.5" step="0.1" disabled>
+
+      <button class="btn-main" id="btn-add-master" onclick="addMasterItem()" disabled>マスターに登録</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>登録一覧</span>
+        <div>
+          <button class="btn-sub" onclick="changeSort('name')">五十音順</button>
+          <button class="btn-sub" onclick="changeSort('price')">単価順</button>
+        </div>
+      </div>
+      <div id="manage-master-list"></div>
+    </div>
+  </div>
+
+  <!-- ボトム固定ナビゲーション -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="switchNav('top')"><span class="nav-icon">🔍</span>検索トップ</button>
+    <button class="nav-btn" onclick="switchNav('record')"><span class="nav-icon">✏️</span>今日の記録</button>
+    <button class="nav-btn" onclick="switchNav('invoice')"><span class="nav-icon">📋</span>伝票・月別</button>
+    <button class="nav-btn" onclick="switchNav('manage')"><span class="nav-icon">⚙️</span>会社管理</button>
+  </div>
+
+  <!-- 拡大モーダル（ダブルタップ用） -->
+  <div id="zoom-modal" onclick="closeZoom()">
+    <div class="zoom-box" onclick="event.stopPropagation()">
+      <div class="zoom-content" id="zoom-text"></div>
+      <button class="btn-main" onclick="closeZoom()" style="margin:0; padding:10px 20px;">閉じる</button>
+    </div>
+  </div>
+
+  <script>
+    // データ初期構造
+    let masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [
+      { id: 1, company: '田中紙業', task: 'ギフト箱組み立て', price: 4.5 },
+      { id: 2, company: '田中紙業', task: 'シール貼り付け', price: 2.0 },
+      { id: 3, company: '佐藤パッケージ', task: '袋詰め・検品', price: 3.0 }
+    ];
+    let recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
+    let isManageLocked = true;
+    let currentSort = 'name'; // 'name' or 'price'
+
+    // ダブルタップ拡大機能
+    let lastTap = 0;
+    document.addEventListener('touchend', function (e) {
+      let currentTime = new Date().getTime();
+      let tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0) {
+        let text = e.target.innerText || e.target.value;
+        if (text && text.length < 50) {
+          showZoom(text);
+          e.preventDefault();
+        }
+      }
+      lastTap = currentTime;
+    });
+
+    function showZoom(text) {
+      document.getElementById('zoom-text').innerText = text;
+      document.getElementById('zoom-modal').classList.add('active');
+    }
+    function closeZoom() {
+      document.getElementById('zoom-modal').classList.remove('active');
+    }
+
+    // 初期化
+    window.onload = function() {
+      document.getElementById('work-date').valueAsDate = new Date();
+      document.getElementById('filter-month').value = new Date().toISOString().slice(0, 7);
+      renderTopSearch();
+      initRecordDropdowns();
+      renderHistory();
+      renderManageList();
+    };
+
+    // ナビゲーション切り替え
+    function switchNav(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      event.currentTarget.classList.add('active');
+
+      if (tabId === 'top') renderTopSearch();
+      if (tabId === 'record') initRecordDropdowns();
+      if (tabId === 'invoice') renderHistory();
+      if (tabId === 'manage') renderManageList();
+    }
+
+    // --- タブ1: トップ検索 ---
+    function renderTopSearch() {
+      const keyword = document.getElementById('search-box').value.trim().toLowerCase();
+      const container = document.getElementById('search-results');
+      container.innerHTML = '';
+
+      // 会社名ごとにグルーピング
+      const grouped = {};
+      masterData.forEach(item => {
+        if (!grouped[item.company]) grouped[item.company] = [];
+        grouped[item.company].push(item);
+      });
+
+      const companies = Object.keys(grouped).filter(c => c.toLowerCase().includes(keyword));
+
+      if (companies.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b; font-weight:bold;">該当する会社がありません</div>';
+        return;
+      }
+
+      companies.forEach(company => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'company-group';
+        groupEl.innerHTML = `<div class="company-header">${company}</div>`;
+
+        grouped[company].forEach(task => {
+          const taskEl = document.createElement('div');
+          taskEl.className = 'task-item';
+          taskEl.innerHTML = `
+            <div class="task-info">
+              <div class="task-name">${task.task}</div>
+              <div class="task-price">単価: ¥${task.price}</div>
+            </div>
+            <button class="btn-action" onclick="selectForToday('${task.company}', ${task.id})">＋ 今日やる</button>
+          `;
+          groupEl.appendChild(taskEl);
+        });
+        container.appendChild(groupEl);
+      });
+    }
+
+    function selectForToday(company, taskId) {
+      // タブ2へ移動して初期セット
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-record').classList.add('active');
+      document.querySelectorAll('.nav-btn')[1].classList.add('active');
+
+      initRecordDropdowns(company, taskId);
+    }
+
+    // --- タブ2: 今日の記録 ---
+    function initRecordDropdowns(targetCompany, targetTaskId) {
+      const compSelect = document.getElementById('rec-company');
+      const companies = [...new Set(masterData.map(m => m.company))];
+
+      compSelect.innerHTML = companies.map(c => `<option value="${c}">${c}</option>`).join('');
+      if (targetCompany && companies.includes(targetCompany)) {
+        compSelect.value = targetCompany;
+      }
+
+      onRecordCompanyChange(targetTaskId);
+    }
+
+    function onRecordCompanyChange(targetTaskId) {
+      const comp = document.getElementById('rec-company').value;
+      const tasks = masterData.filter(m => m.company === comp);
+      const taskSelect = document.getElementById('rec-task');
+
+      taskSelect.innerHTML = tasks.map(t => `<option value="${t.id}">${t.task}</option>`).join('');
+      if (targetTaskId) {
+        taskSelect.value = targetTaskId;
+      }
+      onRecordTaskChange();
+    }
+
+    function onRecordTaskChange() {
+      const taskId = parseInt(document.getElementById('rec-task').value);
+      const item = masterData.find(m => m.id === taskId);
+      document.getElementById('rec-unit-price').innerText = item ? item.price : '0';
+      calcRecordTotal();
+    }
+
+    function calcRecordTotal() {
+      const price = parseFloat(document.getElementById('rec-unit-price').innerText) || 0;
+      const qty = parseFloat(document.getElementById('rec-qty').value) || 0;
+      const total = Math.round(price * qty);
+      document.getElementById('rec-total-price').innerText = total.toLocaleString();
+    }
+
+    function saveRecord() {
+      const date = document.getElementById('work-date').value;
+      const taskId = parseInt(document.getElementById('rec-task').value);
+      const qty = parseFloat(document.getElementById('rec-qty').value);
+      const item = masterData.find(m => m.id === taskId);
+
+      if (!date || !item || isNaN(qty) || qty <= 0) {
+        alert('作業日・個数を正しく入力してください');
+        return;
+      }
+
+      const total = Math.round(item.price * qty);
+      recordData.push({
+        id: Date.now(),
+        date,
+        company: item.company,
+        task: item.task,
+        price: item.price,
+        qty,
+        total
+      });
+
+      localStorage.setItem('naishoku_records', JSON.stringify(recordData));
+      alert(`【記録完了】\n${item.company}\n${item.task} × ${qty}個\n合計: ¥${total.toLocaleString()}`);
+    }
+
+    // --- タブ3: 伝票・履歴 ---
+    function renderHistory() {
+      const month = document.getElementById('filter-month').value;
+      const list = document.getElementById('history-items');
+      const filtered = recordData.filter(r => r.date.startsWith(month)).sort((a,b) => b.date.localeCompare(a.date));
+
+      const monthTotal = filtered.reduce((sum, r) => sum + r.total, 0);
+      document.getElementById('month-total-amount').innerText = monthTotal.toLocaleString();
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">この月の記録はありません</div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map(r => `
+        <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.85rem; color:#64748b;">${r.date} / ${r.company}</div>
+            <div style="font-weight:700; font-size:1.05rem;">${r.task}</div>
+            <div style="font-size:0.9rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.2rem; font-weight:800; color:var(--accent);">¥${r.total.toLocaleString()}</div>
+            <button class="btn-danger" style="margin-top:4px;" onclick="confirmDeleteRecord(${r.id})">削除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function confirmDeleteRecord(id) {
+      if (confirm('本当にこの記録を削除してもよろしいですか？')) {
+        recordData = recordData.filter(r => r.id !== id);
+        localStorage.setItem('naishoku_records', JSON.stringify(recordData));
+        renderHistory();
+      }
+    }
+
+    // --- タブ4: 管理画面 ---
+    function toggleManageLock() {
+      isManageLocked = !isManageLocked;
+      document.getElementById('lock-label').innerText = isManageLocked ? '🔒 編集ロック中' : '🔓 編集可能';
+      ['new-comp', 'new-task', 'new-price', 'btn-add-master'].forEach(id => {
+        document.getElementById(id).disabled = isManageLocked;
+      });
+      renderManageList();
+    }
+
+    function changeSort(type) {
+      currentSort = type;
+      renderManageList();
+    }
+
+    function renderManageList() {
+      const container = document.getElementById('manage-master-list');
+      let sorted = [...masterData];
+
+      if (currentSort === 'name') {
+        sorted.sort((a, b) => a.company.localeCompare(b.company, 'ja'));
+      } else {
+        sorted.sort((a, b) => b.price - a.price);
+      }
+
+      if (sorted.length === 0) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">登録されている会社はありません</div>';
+        return;
+      }
+
+      container.innerHTML = sorted.map(m => `
+        <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:800; font-size:1.1rem; color:var(--primary);">${m.company}</div>
+            <div style="font-weight:700; color:var(--text-main);">${m.task}</div>
+            <div style="font-size:0.95rem; font-weight:800; color:var(--accent);">単価: ¥${m.price}</div>
+          </div>
+          ${!isManageLocked ? `<button class="btn-danger" onclick="confirmDeleteMaster(${m.id})">削除</button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function addMasterItem() {
+      const company = document.getElementById('new-comp').value.trim();
+      const task = document.getElementById('new-task').value.trim();
+      const price = parseFloat(document.getElementById('new-price').value);
+
+      if (!company || !task || isNaN(price)) {
+        alert('会社名、作業内容、単価をすべて正しく入力してください');
+        return;
+      }
+
+      masterData.push({ id: Date.now(), company, task, price });
+      localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+
+      document.getElementById('new-comp').value = '';
+      document.getElementById('new-task').value = '';
+      document.getElementById('new-price').value = '';
+
+      alert('新しく登録しました！');
+      renderManageList();
+      renderTopSearch();
+    }
+
+    function confirmDeleteMaster(id) {
+      if (confirm('この仕事先データを削除しますか？\n（過去の伝票履歴は消えません）')) {
+        masterData = masterData.filter(m => m.id !== id);
+        localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+        renderManageList();
+        renderTopSearch();
+      }
+    }
+  </script>
+</body>
+</html>
