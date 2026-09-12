@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>内職管理</title>
 
-  <!-- Firebase SDK（※ここを追加） -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#f1f5f9">
 
-  <!-- iOS Safari用設定（全画面・アイコン適用） -->
+  <!-- iOS Safari用設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="内職管理">
@@ -30,7 +30,6 @@
   </script>
 
   <style>
-  
     :root {
       --primary: #2563eb;
       --primary-light: #eff6ff;
@@ -44,7 +43,6 @@
       --border: #cbd5e1;
     }
 
-    /* タップ時の青いハイライト・枠線を完全に無効化 */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -55,7 +53,6 @@
     }
     body { background-color: var(--bg); color: var(--text-main); padding-bottom: 85px; font-size: 18px; line-height: 1.4; }
 
-    /* 薄い背景・中央時計ヘッダー */
     header {
       background-color: #f1f5f9;
       color: var(--text-main);
@@ -153,7 +150,6 @@
       font-size: 0.95rem;
     }
 
-    /* 検索トップ用：会社名タップバー（矢印撤廃） */
     .company-tap-bar {
       background: #fff;
       border: 1.5px solid var(--border);
@@ -167,7 +163,6 @@
     }
     .company-tap-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
 
-    /* モーダル共通（一回り小さいティップス） */
     .app-modal {
       display: none;
       position: fixed;
@@ -199,7 +194,6 @@
     }
     .modal-body { overflow-y: auto; flex: 1; margin-bottom: 12px; }
 
-    /* 今日の記録：作業リストカード */
     .task-record-card {
       background: #fff;
       border: 1.5px solid var(--border);
@@ -212,7 +206,6 @@
       cursor: pointer;
     }
 
-    /* 合計バナー */
     .total-banner {
       background: var(--accent-bg);
       border: 1.5px solid #a7f3d0;
@@ -229,7 +222,6 @@
       display: block;
     }
 
-    /* カレンダー表示 */
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -267,7 +259,6 @@
     }
     .cal-day-cell.has-record { background: #f0fdf4; border-color: #86efac; }
 
-    /* アコーディオン */
     .accordion-header {
       background: #eff6ff;
       border: 1.5px solid #bfdbfe;
@@ -286,11 +277,29 @@
       background: #f8fafc;
       border: 1px dashed var(--border);
       border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
     }
 
-    /* 電卓スタイル */
+    /* 写真・サムネイルスタイル */
+    .master-thumb {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .img-preview {
+      max-width: 90px;
+      max-height: 90px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      margin-top: 6px;
+      display: none;
+      object-fit: cover;
+    }
+
     .calc-box {
       background: #1e293b;
       padding: 12px;
@@ -325,7 +334,6 @@
     .calc-btn.eq { background: #059669; font-weight: 900; grid-column: span 2; }
     .calc-btn.clear { background: #dc2626; font-weight: bold; }
 
-    /* ボトムナビ（5タブ対応） */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -361,10 +369,9 @@
 </head>
 <body>
 
-  <!-- 薄い背景・中央時計ヘッダー -->
   <header>
     <div style="width:24px;"></div>
-    <div id="current-clock">2026/08/26 --:--:--</div>
+    <div id="current-clock">--/--/-- --:--:--</div>
     <button id="btn-cloud-status" onclick="handleCloudAuth()" title="クラウド同期">☁️</button>
   </header>
 
@@ -394,14 +401,12 @@
     </div>
   </div>
 
-  <!-- タブ3: 伝票・月別 (検索バーを最上部に配置) -->
+  <!-- タブ3: 伝票・月別 -->
   <div id="tab-invoice" class="tab-content">
     <div class="card">
-      <!-- 1. キーワード検索バー（最上部） -->
       <label style="margin-top:0;">検索</label>
       <input type="text" id="history-search-box" placeholder="キーワードを入力..." oninput="renderHistory()">
 
-      <!-- 2. 表示年月 ＆ 切替ボタン -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; margin-bottom:6px;">
         <label style="margin:0; font-size:0.95rem; font-weight:800;">表示年月</label>
         <div>
@@ -411,13 +416,11 @@
       </div>
       <input type="month" id="filter-month" onchange="renderHistory()">
 
-      <!-- 3. 合計金額バナー -->
       <div class="total-banner">
         <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-sub);">当月合計</span>
         <span class="amount">¥<span id="month-total-amount">0</span></span>
       </div>
 
-      <!-- 4. 並び替え -->
       <label id="sort-controls-label">並び替え</label>
       <div id="sort-controls" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
         <button class="btn-sub" onclick="setHistorySort('date')">日付順</button>
@@ -427,19 +430,16 @@
       </div>
     </div>
 
-    <!-- 当月メモ表示枠（メモがある場合のみ表示） -->
     <div class="card" id="invoice-month-memo-card" style="display:none; background:#fefce8; border-color:#fef08a;">
       <div class="card-title" style="font-size:0.95rem; color:#854d0e; margin-bottom:4px;">📝 当月のメモ</div>
       <div id="invoice-month-memo-text" style="font-size:0.95rem; color:#713f12; white-space:pre-wrap;"></div>
     </div>
 
-    <!-- リストビュー -->
     <div class="card" id="history-list-view">
       <div class="card-title">作業一覧</div>
       <div id="history-items"></div>
     </div>
 
-    <!-- カレンダービュー -->
     <div class="card" id="history-cal-view" style="display:none;">
       <div class="card-title" id="cal-month-title">カレンダー</div>
       <div class="calendar-grid" id="calendar-grid"></div>
@@ -465,13 +465,18 @@
         <input type="text" id="new-comp-name" placeholder="例: ○○工業" list="master-company-hints">
         <datalist id="master-company-hints"></datalist>
 
-        <label style="margin-top:12px;">作業内容と単価の登録</label>
+        <label style="margin-top:12px;">作業内容・単価・詳細</label>
         <div id="dynamic-task-rows">
           <div class="task-price-input-row">
             <label>作業内容</label>
             <input type="text" class="input-task-item" placeholder="例: シール貼り">
             <label>単価 (円)</label>
             <input type="number" class="input-price-item" placeholder="例: 3.5" step="0.1">
+            <label>メモ・注意事項</label>
+            <textarea class="input-memo-item" rows="2" placeholder="例: 向きに注意、ラベルの端を揃える など"></textarea>
+            <label>見本写真</label>
+            <input type="file" class="input-img-item" accept="image/*" onchange="handleImageSelect(this)">
+            <img class="img-preview" alt="プレビュー">
           </div>
         </div>
 
@@ -491,9 +496,8 @@
     </div>
   </div>
 
-  <!-- タブ5: ツール (計算機・メモ・リマインダー) -->
+  <!-- タブ5: ツール -->
   <div id="tab-tools" class="tab-content">
-    <!-- 計算機 -->
     <div class="card">
       <div class="card-title">計算機</div>
       <div class="calc-box">
@@ -526,7 +530,6 @@
       </div>
     </div>
 
-    <!-- メモ -->
     <div class="card">
       <div class="card-title">メモ帳</div>
       <label>メモの種類</label>
@@ -543,7 +546,6 @@
       <button class="btn-main" onclick="saveMemo()">メモを保存</button>
     </div>
 
-    <!-- リマインダー -->
     <div class="card">
       <div class="card-title">リマインダー・納期管理</div>
       <label>期日・日時</label>
@@ -559,18 +561,31 @@
       </div>
       <div id="reminder-list"></div>
     </div>
+
+    <!-- 端末内バックアップ・復元 -->
+    <div class="card">
+      <div class="card-title">データ管理（端末保存のバックアップ）</div>
+      <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:10px;">
+        端末に保存されている作業データや伝票記録をファイルに出力、または復元します。
+      </p>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-sub" style="flex:1;" onclick="exportLocalData()">データを書き出す</button>
+        <button class="btn-sub" style="flex:1;" onclick="document.getElementById('import-file-input').click()">データを読み込む</button>
+      </div>
+      <input type="file" id="import-file-input" accept=".json" style="display:none;" onchange="importLocalData(event)">
+    </div>
   </div>
 
-  <!-- ボトム固定ナビゲーション（5タブ） -->
+  <!-- ボトム固定ナビゲーション -->
   <div class="bottom-nav">
-    <button class="nav-btn active" onclick="switchNav('top')"><span class="nav-icon">🔍</span>検索トップ</button>
-    <button class="nav-btn" onclick="switchNav('record')"><span class="nav-icon">✏️</span>今日の記録</button>
-    <button class="nav-btn" onclick="switchNav('invoice')"><span class="nav-icon">📋</span>伝票・月別</button>
-    <button class="nav-btn" onclick="switchNav('manage')"><span class="nav-icon">⚙️</span>会社管理</button>
-    <button class="nav-btn" onclick="switchNav('tools')"><span class="nav-icon">🛠️</span>ツール</button>
+    <button class="nav-btn active" id="nav-btn-top" onclick="switchNav('top')"><span class="nav-icon">🔍</span>検索トップ</button>
+    <button class="nav-btn" id="nav-btn-record" onclick="switchNav('record')"><span class="nav-icon">✏️</span>今日の記録</button>
+    <button class="nav-btn" id="nav-btn-invoice" onclick="switchNav('invoice')"><span class="nav-icon">📋</span>伝票・月別</button>
+    <button class="nav-btn" id="nav-btn-manage" onclick="switchNav('manage')"><span class="nav-icon">⚙️</span>会社管理</button>
+    <button class="nav-btn" id="nav-btn-tools" onclick="switchNav('tools')"><span class="nav-icon">🛠️</span>ツール</button>
   </div>
 
-  <!-- モーダル1: トップ詳細ティップス（複数選択可能） -->
+  <!-- モーダル1: トップ詳細ティップス -->
   <div id="top-detail-modal" class="app-modal" onclick="closeTopModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header" id="top-modal-comp-name">会社名</div>
@@ -582,7 +597,7 @@
     </div>
   </div>
 
-  <!-- モーダル2: 今日の記録用ティップス（個数入力） -->
+  <!-- モーダル2: 今日の記録用ティップス -->
   <div id="record-input-modal" class="app-modal" onclick="closeRecordModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header" id="rec-modal-title">作業記録の入力</div>
@@ -615,10 +630,15 @@
     </div>
   </div>
 
+  <!-- モーダル4: 写真拡大ティップス -->
+  <div id="img-viewer-modal" class="app-modal" onclick="closeImageViewer()">
+    <div class="modal-box" style="align-items:center; justify-content:center; max-width:90%;" onclick="event.stopPropagation()">
+      <img id="img-viewer-src" src="" style="max-width:100%; max-height:65vh; object-fit:contain; border-radius:8px; margin-bottom:12px;">
+      <button class="btn-sub" style="width:100%;" onclick="closeImageViewer()">閉じる</button>
+    </div>
+  </div>
+
   <script>
-    // ==========================================
-    // ▼ ここにご自身のFirebase Configを貼り付け ▼
-    // ==========================================
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_AUTH_DOMAIN",
@@ -627,23 +647,27 @@
       messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
       appId: "YOUR_APP_ID"
     };
-    // ==========================================
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    let auth = null;
+    let db = null;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      db = firebase.firestore();
+    } catch (e) {
+      console.warn("Firebase初期化待機または未設定:", e);
+    }
 
     let currentUser = null;
     let masterData = [];
     let recordData = [];
-    let memoData = {}; // { 'general': '...', '2026-08': '...' }
+    let memoData = {};
     let reminderData = [];
     let selectedTodayTasks = [];
     let currentRecordTarget = null;
     let historySortType = 'date';
     let currentInvoiceView = 'list';
 
-    // 日本語あいまい検索用正規化
     function normalizeKana(str) {
       if (!str) return '';
       return str.toString()
@@ -655,12 +679,9 @@
 
     function isMatch(text, query) {
       if (!query) return true;
-      const nText = normalizeKana(text);
-      const nQuery = normalizeKana(query);
-      return nText.includes(nQuery);
+      return normalizeKana(text).includes(normalizeKana(query));
     }
 
-    // 時計
     function updateClock() {
       const now = new Date();
       const y = now.getFullYear();
@@ -670,31 +691,45 @@
       const min = String(now.getMinutes()).padStart(2, '0');
       const s = String(now.getSeconds()).padStart(2, '0');
       const days = ['日', '月', '火', '水', '木', '金', '土'];
-      document.getElementById('current-clock').innerText = `${y}/${m}/${d}(${days[now.getDay()]}) ${h}:${min}:${s}`;
+      const el = document.getElementById('current-clock');
+      if (el) {
+        el.innerText = `${y}/${m}/${d}(${days[now.getDay()]}) ${h}:${min}:${s}`;
+      }
     }
     setInterval(updateClock, 1000);
-    updateClock();
 
-    // 認証
-    auth.onAuthStateChanged(user => {
-      currentUser = user;
-      const btn = document.getElementById('btn-cloud-status');
-      if (user) {
-        btn.style.opacity = '1.0';
-        btn.title = `クラウド同期中: ${user.displayName || ''}`;
-        loadCloudData();
-      } else {
-        btn.style.opacity = '0.4';
-        btn.title = '未ログイン (端末のみ保存)';
-        masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [];
-        recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
-        memoData = JSON.parse(localStorage.getItem('naishoku_memos')) || {};
-        reminderData = JSON.parse(localStorage.getItem('naishoku_reminders')) || [];
-        refreshViews();
-      }
-    });
+    if (auth) {
+      auth.onAuthStateChanged(user => {
+        currentUser = user;
+        const btn = document.getElementById('btn-cloud-status');
+        if (user) {
+          btn.style.opacity = '1.0';
+          btn.title = `クラウド同期中: ${user.displayName || ''}`;
+          loadCloudData();
+        } else {
+          btn.style.opacity = '0.4';
+          btn.title = '未ログイン (端末のみ保存)';
+          loadLocalData();
+          refreshViews();
+        }
+      });
+    } else {
+      loadLocalData();
+      refreshViews();
+    }
+
+    function loadLocalData() {
+      masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [];
+      recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
+      memoData = JSON.parse(localStorage.getItem('naishoku_memos')) || {};
+      reminderData = JSON.parse(localStorage.getItem('naishoku_reminders')) || [];
+    }
 
     function handleCloudAuth() {
+      if (!auth) {
+        alert('Firebase設定が完了していません。端末保存モードで動作しています。');
+        return;
+      }
       if (!currentUser) {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).catch(e => alert('ログインエラー: ' + e.message));
@@ -706,7 +741,7 @@
     }
 
     function loadCloudData() {
-      if (!currentUser) return;
+      if (!currentUser || !db) return;
       const userRef = db.collection('users').doc(currentUser.uid);
 
       userRef.collection('masters').onSnapshot(snap => {
@@ -743,6 +778,7 @@
     }
 
     window.onload = function() {
+      updateClock();
       document.getElementById('rec-date').valueAsDate = new Date();
       document.getElementById('remind-date').valueAsDate = new Date();
       const curMonth = new Date().toISOString().slice(0, 7);
@@ -753,8 +789,12 @@
     function switchNav(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(`tab-${tabId}`).classList.add('active');
-      event.currentTarget.classList.add('active');
+
+      const targetContent = document.getElementById(`tab-${tabId}`);
+      if (targetContent) targetContent.classList.add('active');
+
+      const targetBtn = document.getElementById(`nav-btn-${tabId}`);
+      if (targetBtn) targetBtn.classList.add('active');
 
       if (tabId === 'top') renderTopSearch();
       if (tabId === 'record') renderTodayTaskCards();
@@ -773,7 +813,7 @@
       container.innerHTML = '';
 
       const matchedCompanies = [...new Set(masterData.filter(m => {
-        return isMatch(m.company, keyword) || isMatch(m.task, keyword);
+        return isMatch(m.company, keyword) || isMatch(m.task, keyword) || isMatch(m.note, keyword);
       }).map(m => m.company))];
 
       if (matchedCompanies.length === 0) {
@@ -799,11 +839,13 @@
         <div style="background:#f8fafc; border:1.5px solid var(--border); border-radius:8px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
           <label style="display:flex; align-items:center; gap:10px; margin:0; flex:1; cursor:pointer;">
             <input type="checkbox" class="top-task-chk" value="${t.id}" style="width:22px; height:22px;">
-            <div>
+            <div style="flex:1;">
               <div style="font-weight:800; font-size:1.1rem;">${t.task}</div>
               <div style="font-size:0.95rem; color:var(--accent); font-weight:800;">単価: ¥${t.price}</div>
+              ${t.note ? `<div style="font-size:0.8rem; color:var(--text-sub); margin-top:2px;">📝 ${t.note}</div>` : ''}
             </div>
           </label>
+          ${t.image ? `<img src="${t.image}" class="master-thumb" onclick="openImageViewer('${t.image}')" alt="写真">` : ''}
         </div>
       `).join('');
 
@@ -829,11 +871,7 @@
       });
 
       closeTopModal();
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-record').classList.add('active');
-      document.querySelectorAll('.nav-btn')[1].classList.add('active');
-      renderTodayTaskCards();
+      switchNav('record');
     }
 
     // --- タブ2: 今日の記録 ---
@@ -846,11 +884,13 @@
 
       container.innerHTML = selectedTodayTasks.map((t, idx) => `
         <div class="task-record-card" onclick="openRecordInputModal(${idx})">
-          <div>
+          <div style="flex:1;">
             <div style="font-size:0.85rem; color:#64748b; font-weight:700;">${t.company}</div>
             <div style="font-weight:800; font-size:1.15rem; color:var(--primary);">${t.task}</div>
             <div style="font-size:0.95rem; color:var(--accent); font-weight:800;">単価: ¥${t.price}</div>
+            ${t.note ? `<div style="font-size:0.8rem; color:var(--text-sub); margin-top:3px;">📝 ${t.note}</div>` : ''}
           </div>
+          ${t.image ? `<img src="${t.image}" class="master-thumb" onclick="event.stopPropagation(); openImageViewer('${t.image}')" alt="写真">` : ''}
         </div>
       `).join('');
     }
@@ -901,7 +941,7 @@
         createdAt: new Date().toISOString()
       };
 
-      if (currentUser) {
+      if (currentUser && db) {
         await db.collection('users').doc(currentUser.uid).collection('records').add(newRec);
       } else {
         recordData.push({ id: Date.now(), ...newRec });
@@ -1068,7 +1108,7 @@
 
     async function deleteRecordItem(id) {
       if (confirm('この記録を削除しますか？')) {
-        if (currentUser) {
+        if (currentUser && db) {
           await db.collection('users').doc(currentUser.uid).collection('records').doc(id).delete();
         } else {
           recordData = recordData.filter(r => r.id != id);
@@ -1098,6 +1138,51 @@
       }
     }
 
+    // 画像選択＆自動圧縮プレビュー処理
+    function handleImageSelect(input) {
+      const file = input.files[0];
+      const row = input.closest('.task-price-input-row');
+      const preview = row.querySelector('.img-preview');
+
+      if (!file) {
+        row.dataset.imgBase64 = '';
+        preview.src = '';
+        preview.style.display = 'none';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          row.dataset.imgBase64 = compressedBase64;
+          preview.src = compressedBase64;
+          preview.style.display = 'block';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
     function addTaskInputRow() {
       const container = document.getElementById('dynamic-task-rows');
       const row = document.createElement('div');
@@ -1107,6 +1192,11 @@
         <input type="text" class="input-task-item" placeholder="例: 袋詰め">
         <label>単価 (円)</label>
         <input type="number" class="input-price-item" placeholder="例: 2.0" step="0.1">
+        <label>メモ・注意事項</label>
+        <textarea class="input-memo-item" rows="2" placeholder="例: 表裏の確認必須 など"></textarea>
+        <label>見本写真</label>
+        <input type="file" class="input-img-item" accept="image/*" onchange="handleImageSelect(this)">
+        <img class="img-preview" alt="プレビュー">
       `;
       container.appendChild(row);
     }
@@ -1118,24 +1208,26 @@
         return;
       }
 
-      const taskInputs = document.querySelectorAll('.input-task-item');
-      const priceInputs = document.querySelectorAll('.input-price-item');
+      const rows = document.querySelectorAll('#dynamic-task-rows .task-price-input-row');
       const itemsToAdd = [];
 
-      for (let i = 0; i < taskInputs.length; i++) {
-        const task = taskInputs[i].value.trim();
-        const price = parseFloat(priceInputs[i].value);
+      rows.forEach(row => {
+        const task = row.querySelector('.input-task-item').value.trim();
+        const price = parseFloat(row.querySelector('.input-price-item').value);
+        const note = row.querySelector('.input-memo-item').value.trim();
+        const image = row.dataset.imgBase64 || '';
+
         if (task && !isNaN(price)) {
-          itemsToAdd.push({ company, task, price });
+          itemsToAdd.push({ company, task, price, note, image });
         }
-      }
+      });
 
       if (itemsToAdd.length === 0) {
         alert('作業内容と単価を少なくとも1組入力してください');
         return;
       }
 
-      if (currentUser) {
+      if (currentUser && db) {
         const batch = db.batch();
         itemsToAdd.forEach(item => {
           const docRef = db.collection('users').doc(currentUser.uid).collection('masters').doc();
@@ -1157,6 +1249,11 @@
           <input type="text" class="input-task-item" placeholder="例: シール貼り">
           <label>単価 (円)</label>
           <input type="number" class="input-price-item" placeholder="例: 3.5" step="0.1">
+          <label>メモ・注意事項</label>
+          <textarea class="input-memo-item" rows="2" placeholder="例: 向きに注意、ラベルの端を揃える など"></textarea>
+          <label>見本写真</label>
+          <input type="file" class="input-img-item" accept="image/*" onchange="handleImageSelect(this)">
+          <img class="img-preview" alt="プレビュー">
         </div>
       `;
       toggleAddAccordion();
@@ -1175,7 +1272,7 @@
 
       const matchedCompanies = Object.keys(grouped).filter(comp => {
         const matchComp = isMatch(comp, searchKey);
-        const matchTask = grouped[comp].some(t => isMatch(t.task, searchKey));
+        const matchTask = grouped[comp].some(t => isMatch(t.task, searchKey) || isMatch(t.note, searchKey));
         return matchComp || matchTask;
       });
 
@@ -1191,12 +1288,14 @@
           </div>
           <div style="padding:6px 12px;">
             ${grouped[comp].map(t => `
-              <div style="border-bottom:1px solid #f1f5f9; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-weight:700;">${t.task}</div>
+              <div style="border-bottom:1px solid #f1f5f9; padding:10px 0; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                <div style="flex:1;">
+                  <div style="font-weight:700; font-size:1.05rem;">${t.task}</div>
                   <div style="font-size:0.95rem; color:var(--accent); font-weight:800;">単価: ¥${t.price}</div>
+                  ${t.note ? `<div style="font-size:0.85rem; color:var(--text-sub); margin-top:4px; white-space:pre-wrap; background:#f8fafc; padding:4px 8px; border-radius:6px; border-left:3px solid #cbd5e1;">📝 ${t.note}</div>` : ''}
                 </div>
-                <button class="btn-danger" onclick="deleteMasterItem('${t.id}')">削除</button>
+                ${t.image ? `<img src="${t.image}" class="master-thumb" onclick="openImageViewer('${t.image}')" alt="写真">` : ''}
+                <button class="btn-danger" style="margin-top:2px;" onclick="deleteMasterItem('${t.id}')">削除</button>
               </div>
             `).join('')}
           </div>
@@ -1204,9 +1303,18 @@
       `).join('');
     }
 
+    function openImageViewer(src) {
+      document.getElementById('img-viewer-src').src = src;
+      document.getElementById('img-viewer-modal').classList.add('active');
+    }
+
+    function closeImageViewer() {
+      document.getElementById('img-viewer-modal').classList.remove('active');
+    }
+
     async function deleteMasterItem(id) {
       if (confirm('この作業・単価データを削除しますか？\n（過去の伝票記録は消えません）')) {
-        if (currentUser) {
+        if (currentUser && db) {
           await db.collection('users').doc(currentUser.uid).collection('masters').doc(id).delete();
         } else {
           masterData = masterData.filter(m => m.id != id);
@@ -1216,8 +1324,7 @@
       }
     }
 
-    // --- タブ5: ツール (計算機・メモ・リマインダー) ---
-    // 1. 計算機ロジック
+    // --- タブ5: ツール ---
     let calcExpression = '';
     function calcInput(val) {
       const display = document.getElementById('calc-display');
@@ -1226,9 +1333,11 @@
         display.innerText = '0';
       } else if (val === '=') {
         try {
-          const result = Function('"use strict";return (' + calcExpression + ')')();
-          display.innerText = result;
-          calcExpression = String(result);
+          if (!calcExpression) return;
+          const sanitized = calcExpression.replace(/[^0-9+\-*/().]/g, '');
+          const result = Function('"use strict";return (' + sanitized + ')')();
+          display.innerText = isFinite(result) ? result : 'Error';
+          calcExpression = isFinite(result) ? String(result) : '';
         } catch (e) {
           display.innerText = 'Error';
           calcExpression = '';
@@ -1239,7 +1348,6 @@
       }
     }
 
-    // 2. メモロジック
     function onMemoTypeChange() {
       const type = document.getElementById('memo-target-type').value;
       const isMonth = (type === 'month');
@@ -1263,7 +1371,7 @@
       const key = getMemoKey();
       const content = document.getElementById('memo-content-input').value;
 
-      if (currentUser) {
+      if (currentUser && db) {
         await db.collection('users').doc(currentUser.uid).collection('memos').doc(key).set({ content });
       } else {
         memoData[key] = content;
@@ -1273,7 +1381,6 @@
       alert('メモを保存しました');
     }
 
-    // 3. リマインダーロジック
     function renderReminders() {
       const list = document.getElementById('reminder-list');
       const sorted = [...reminderData].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
@@ -1308,7 +1415,7 @@
 
       const newRem = { date, text, done: false, createdAt: new Date().toISOString() };
 
-      if (currentUser) {
+      if (currentUser && db) {
         await db.collection('users').doc(currentUser.uid).collection('reminders').add(newRem);
       } else {
         reminderData.push({ id: Date.now(), ...newRem });
@@ -1323,7 +1430,7 @@
       const item = reminderData.find(r => r.id == id);
       if (!item) return;
 
-      if (currentUser) {
+      if (currentUser && db) {
         await db.collection('users').doc(currentUser.uid).collection('reminders').doc(id).update({ done: !item.done });
       } else {
         item.done = !item.done;
@@ -1334,7 +1441,7 @@
 
     async function deleteReminder(id) {
       if (confirm('この予定を削除しますか？')) {
-        if (currentUser) {
+        if (currentUser && db) {
           await db.collection('users').doc(currentUser.uid).collection('reminders').doc(id).delete();
         } else {
           reminderData = reminderData.filter(r => r.id != id);
@@ -1342,6 +1449,49 @@
           renderReminders();
         }
       }
+    }
+
+    // --- 端末バックアップ・復元処理 ---
+    function exportLocalData() {
+      const backup = {
+        master: JSON.parse(localStorage.getItem('naishoku_master')) || [],
+        records: JSON.parse(localStorage.getItem('naishoku_records')) || [],
+        memos: JSON.parse(localStorage.getItem('naishoku_memos')) || {},
+        reminders: JSON.parse(localStorage.getItem('naishoku_reminders')) || []
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `naishoku_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importLocalData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (confirm('現在の端末データに上書きして復元しますか？')) {
+            if (data.master) localStorage.setItem('naishoku_master', JSON.stringify(data.master));
+            if (data.records) localStorage.setItem('naishoku_records', JSON.stringify(data.records));
+            if (data.memos) localStorage.setItem('naishoku_memos', JSON.stringify(data.memos));
+            if (data.reminders) localStorage.setItem('naishoku_reminders', JSON.stringify(data.reminders));
+
+            loadLocalData();
+            refreshViews();
+            alert('バックアップデータを読み込みました');
+          }
+        } catch (err) {
+          alert('ファイルの読み込みに失敗しました。正しいバックアップJSONファイルか確認してください。');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
     }
   </script>
 </body>
