@@ -330,18 +330,67 @@
       border: 1px solid #fff;
     }
 
-    /* ペンマークボタン */
-    .btn-icon-edit {
+    /* 3点リーダーメニュー */
+    .action-menu-container {
+      position: absolute;
+      top: 6px;
+      right: 0;
+    }
+    .btn-dots-menu {
       background: none;
       border: none;
-      font-size: 1.25rem;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: var(--text-sub);
       cursor: pointer;
-      padding: 4px 6px;
-      border-radius: 6px;
+      padding: 4px 8px;
       line-height: 1;
+      border-radius: 6px;
     }
-    .btn-icon-edit:active {
+    .btn-dots-menu:active {
       background-color: #e2e8f0;
+    }
+    .dropdown-action-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: #ffffff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 50;
+      min-width: 110px;
+      overflow: hidden;
+    }
+    .dropdown-action-menu.active {
+      display: flex;
+      flex-direction: column;
+    }
+    .dropdown-menu-item {
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dropdown-menu-item:not(:last-child) {
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .dropdown-menu-item:active {
+      background-color: #f1f5f9;
+    }
+    .dropdown-menu-item.edit {
+      color: var(--primary);
+    }
+    .dropdown-menu-item.delete {
+      color: var(--danger);
     }
 
     .calc-box {
@@ -411,7 +460,7 @@
     .nav-icon { font-size: 1.2rem; }
   </style>
 </head>
-<body>
+<body onclick="closeAllActionMenus()">
 
   <header>
     <div style="width:24px;"></div>
@@ -741,7 +790,7 @@
     let currentRecordTarget = null;
     let historySortType = 'date';
     let currentInvoiceView = 'list';
-    let editingMasterImages = []; // 編集モーダル用の画像配列一時保持
+    let editingMasterImages = [];
 
     function normalizeKana(str) {
       if (!str) return '';
@@ -795,7 +844,6 @@
 
     function loadLocalData() {
       masterData = JSON.parse(localStorage.getItem('naishoku_master')) || [];
-      // 旧データ（単一image）がある場合の配列化マイグレーション
       masterData.forEach(m => {
         if (!m.images) {
           m.images = m.image ? [m.image] : [];
@@ -894,7 +942,24 @@
       }
     }
 
-    // --- 画像リサイズ関数 ---
+    // --- 3点リーダーメニュー制御 ---
+    function toggleActionMenu(event, id) {
+      event.stopPropagation();
+      const targetMenu = document.getElementById(`menu-${id}`);
+      const isAlreadyOpen = targetMenu.classList.contains('active');
+      closeAllActionMenus();
+      if (!isAlreadyOpen) {
+        targetMenu.classList.add('active');
+      }
+    }
+
+    function closeAllActionMenus() {
+      document.querySelectorAll('.dropdown-action-menu').forEach(menu => {
+        menu.classList.remove('active');
+      });
+    }
+
+    // --- 画像リサイズ処理 ---
     function compressImageFile(file, callback) {
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -925,7 +990,6 @@
       reader.readAsDataURL(file);
     }
 
-    // --- 新規登録用：複数画像ハンドリング ---
     function handleMultipleImageSelect(input) {
       const row = input.closest('.task-price-input-row');
       let currentImgs = JSON.parse(row.dataset.images || '[]');
@@ -1430,15 +1494,21 @@
               const imgs = t.images || (t.image ? [t.image] : []);
               return `
                 <div style="border-bottom:1px solid #f1f5f9; padding:12px 0; position:relative;">
-                  <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-right:32px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-right:36px;">
                     <div>
                       <div style="font-weight:700; font-size:1.05rem;">${t.task}</div>
                       <div style="font-size:0.95rem; color:var(--accent); font-weight:800;">単価: ¥${t.price}</div>
                     </div>
                   </div>
 
-                  <!-- 右上の編集ペンマーク -->
-                  <button class="btn-icon-edit" style="position:absolute; top:8px; right:0;" onclick="openEditMasterModal('${t.id}')" title="編集">✏️</button>
+                  <!-- 縦の3点リーダー（︙）ボタンとドロップダウンメニュー -->
+                  <div class="action-menu-container">
+                    <button class="btn-dots-menu" onclick="toggleActionMenu(event, '${t.id}')" title="メニュー">︙</button>
+                    <div class="dropdown-action-menu" id="menu-${t.id}">
+                      <button class="dropdown-menu-item edit" onclick="openEditMasterModal('${t.id}')">✏️ 編集</button>
+                      <button class="dropdown-menu-item delete" onclick="deleteMasterItem('${t.id}')">🗑️ 削除</button>
+                    </div>
+                  </div>
 
                   ${t.note ? `<div style="font-size:0.85rem; color:var(--text-sub); margin-top:6px; white-space:pre-wrap; background:#f8fafc; padding:6px 10px; border-radius:6px; border-left:3px solid #cbd5e1;">📝 ${t.note}</div>` : ''}
 
@@ -1447,10 +1517,6 @@
                       ${imgs.map(img => `<img src="${img}" class="master-thumb" onclick="openImageViewer('${img}')" alt="写真">`).join('')}
                     </div>
                   ` : ''}
-
-                  <div style="display:flex; justify-content:flex-end; margin-top:8px;">
-                    <button class="btn-danger" onclick="deleteMasterItem('${t.id}')">削除</button>
-                  </div>
                 </div>
               `;
             }).join('')}
@@ -1461,6 +1527,7 @@
 
     // --- 編集モーダル制御 ---
     function openEditMasterModal(id) {
+      closeAllActionMenus();
       const item = masterData.find(m => m.id == id);
       if (!item) return;
 
@@ -1550,7 +1617,6 @@
         }
       }
 
-      // 「今日の記録」で選択中だったタスクも連動更新
       const todayIdx = selectedTodayTasks.findIndex(t => t.id == id);
       if (todayIdx !== -1) {
         selectedTodayTasks[todayIdx] = { id, ...updatedData };
@@ -1571,6 +1637,7 @@
     }
 
     async function deleteMasterItem(id) {
+      closeAllActionMenus();
       if (confirm('この作業・単価データを削除しますか？\n（過去の伝票記録は消えません）')) {
         if (currentUser && db) {
           await db.collection('users').doc(currentUser.uid).collection('masters').doc(id).delete();
