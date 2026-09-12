@@ -281,7 +281,6 @@
       margin-bottom: 12px;
     }
 
-    /* 写真サムネイル・ギャラリー */
     .master-thumbs-wrap {
       display: flex;
       gap: 6px;
@@ -330,24 +329,42 @@
       border: 1px solid #fff;
     }
 
-    /* 3点リーダーメニュー */
+    /* 会社名ヘッダー・アクションメニュー */
+    .company-header-bar {
+      background: var(--primary-light);
+      padding: 10px 12px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--primary);
+      border-bottom: 1px solid #bfdbfe;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
     .action-menu-container {
-      position: absolute;
-      top: 6px;
-      right: 0;
+      position: relative;
+      display: inline-block;
     }
     .btn-dots-menu {
       background: none;
       border: none;
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: bold;
-      color: var(--text-sub);
+      color: var(--primary);
       cursor: pointer;
-      padding: 4px 8px;
+      padding: 2px 8px;
       line-height: 1;
       border-radius: 6px;
     }
     .btn-dots-menu:active {
+      background-color: #dbeafe;
+    }
+    .btn-dots-menu.sub {
+      color: var(--text-sub);
+      font-size: 1.25rem;
+    }
+    .btn-dots-menu.sub:active {
       background-color: #e2e8f0;
     }
     .dropdown-action-menu {
@@ -358,9 +375,9 @@
       background: #ffffff;
       border: 1.5px solid var(--border);
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
       z-index: 50;
-      min-width: 110px;
+      min-width: 140px;
       overflow: hidden;
     }
     .dropdown-action-menu.active {
@@ -378,20 +395,16 @@
       width: 100%;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .dropdown-menu-item:not(:last-child) {
       border-bottom: 1px solid #f1f5f9;
     }
     .dropdown-menu-item:active {
-      background-color: #f1f5f9;
+      background-color: #f8fafc;
     }
-    .dropdown-menu-item.edit {
-      color: var(--primary);
-    }
-    .dropdown-menu-item.delete {
-      color: var(--danger);
-    }
+    .dropdown-menu-item.edit { color: var(--primary); }
+    .dropdown-menu-item.delete { color: var(--danger); }
 
     .calc-box {
       background: #1e293b;
@@ -761,6 +774,23 @@
     </div>
   </div>
 
+  <!-- モーダル6: 会社名変更モーダル -->
+  <div id="edit-company-modal" class="app-modal" onclick="closeEditCompanyModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">会社名の変更</div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-old-company-name">
+        <label>新しい会社名</label>
+        <input type="text" id="edit-new-company-name" placeholder="新しい会社名を入力">
+        <p style="font-size:0.85rem; color:var(--text-sub); margin-top:6px;">※この会社に紐づくすべての作業データの会社名が更新されます。</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-sub" style="flex:1;" onclick="closeEditCompanyModal()">キャンセル</button>
+        <button class="btn-main" style="flex:2; margin-top:0;" onclick="submitEditCompanyName()">変更する</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
@@ -942,7 +972,7 @@
       }
     }
 
-    // --- 3点リーダーメニュー制御 ---
+    // --- 3点リーダーメニュー開閉制御 ---
     function toggleActionMenu(event, id) {
       event.stopPropagation();
       const targetMenu = document.getElementById(`menu-${id}`);
@@ -1484,29 +1514,38 @@
         return;
       }
 
-      container.innerHTML = matchedCompanies.map(comp => `
+      container.innerHTML = matchedCompanies.map((comp, compIdx) => `
         <div style="border:1.5px solid var(--border); border-radius:10px; margin-bottom:12px; overflow:hidden; background:#fff;">
-          <div style="background:var(--primary-light); padding:10px 12px; font-weight:800; font-size:1.15rem; color:var(--primary); border-bottom:1px solid #bfdbfe;">
-            ${comp}
+          <!-- 会社名ヘッダー（会社名＋右端の︙メニュー） -->
+          <div class="company-header-bar">
+            <span>${comp}</span>
+            <div class="action-menu-container">
+              <button class="btn-dots-menu" onclick="toggleActionMenu(event, 'comp-${compIdx}')" title="会社メニュー">︙</button>
+              <div class="dropdown-action-menu" id="menu-comp-${compIdx}">
+                <button class="dropdown-menu-item edit" onclick="openEditCompanyModal('${comp}')">✏️ 会社名の編集</button>
+                <button class="dropdown-menu-item delete" onclick="deleteCompanyAll('${comp}')">🗑️ 会社ごと削除</button>
+              </div>
+            </div>
           </div>
+
           <div style="padding:6px 12px;">
             ${grouped[comp].map(t => {
               const imgs = t.images || (t.image ? [t.image] : []);
               return `
                 <div style="border-bottom:1px solid #f1f5f9; padding:12px 0; position:relative;">
-                  <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-right:36px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-right:32px;">
                     <div>
                       <div style="font-weight:700; font-size:1.05rem;">${t.task}</div>
                       <div style="font-size:0.95rem; color:var(--accent); font-weight:800;">単価: ¥${t.price}</div>
                     </div>
                   </div>
 
-                  <!-- 縦の3点リーダー（︙）ボタンとドロップダウンメニュー -->
-                  <div class="action-menu-container">
-                    <button class="btn-dots-menu" onclick="toggleActionMenu(event, '${t.id}')" title="メニュー">︙</button>
-                    <div class="dropdown-action-menu" id="menu-${t.id}">
-                      <button class="dropdown-menu-item edit" onclick="openEditMasterModal('${t.id}')">✏️ 編集</button>
-                      <button class="dropdown-menu-item delete" onclick="deleteMasterItem('${t.id}')">🗑️ 削除</button>
+                  <!-- 作業ごとの︙メニュー -->
+                  <div class="action-menu-container" style="position:absolute; top:6px; right:0;">
+                    <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'task-${t.id}')" title="作業メニュー">︙</button>
+                    <div class="dropdown-action-menu" id="menu-task-${t.id}">
+                      <button class="dropdown-menu-item edit" onclick="openEditMasterModal('${t.id}')">✏️ 作業の編集</button>
+                      <button class="dropdown-menu-item delete" onclick="deleteMasterItem('${t.id}')">🗑️ 作業の削除</button>
                     </div>
                   </div>
 
@@ -1525,7 +1564,79 @@
       `).join('');
     }
 
-    // --- 編集モーダル制御 ---
+    // --- 会社名編集モーダル制御 ---
+    function openEditCompanyModal(oldName) {
+      closeAllActionMenus();
+      document.getElementById('edit-old-company-name').value = oldName;
+      document.getElementById('edit-new-company-name').value = oldName;
+      document.getElementById('edit-company-modal').classList.add('active');
+    }
+
+    function closeEditCompanyModal() {
+      document.getElementById('edit-company-modal').classList.remove('active');
+    }
+
+    async function submitEditCompanyName() {
+      const oldName = document.getElementById('edit-old-company-name').value;
+      const newName = document.getElementById('edit-new-company-name').value.trim();
+
+      if (!newName) {
+        alert('会社名を入力してください');
+        return;
+      }
+      if (oldName === newName) {
+        closeEditCompanyModal();
+        return;
+      }
+
+      if (currentUser && db) {
+        const targets = masterData.filter(m => m.company === oldName);
+        const batch = db.batch();
+        targets.forEach(item => {
+          const ref = db.collection('users').doc(currentUser.uid).collection('masters').doc(item.id);
+          batch.update(ref, { company: newName });
+        });
+        await batch.commit();
+      } else {
+        masterData.forEach(item => {
+          if (item.company === oldName) {
+            item.company = newName;
+          }
+        });
+        localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+        refreshViews();
+      }
+
+      // 今日の記録内の会社名も更新
+      selectedTodayTasks.forEach(task => {
+        if (task.company === oldName) task.company = newName;
+      });
+      renderTodayTaskCards();
+
+      closeEditCompanyModal();
+      alert(`会社名を「${newName}」に更新しました`);
+    }
+
+    async function deleteCompanyAll(companyName) {
+      closeAllActionMenus();
+      if (confirm(`【警告】会社「${companyName}」に登録されているすべての作業を削除しますか？\n（過去の伝票記録は消えません）`)) {
+        if (currentUser && db) {
+          const targets = masterData.filter(m => m.company === companyName);
+          const batch = db.batch();
+          targets.forEach(item => {
+            const ref = db.collection('users').doc(currentUser.uid).collection('masters').doc(item.id);
+            batch.delete(ref);
+          });
+          await batch.commit();
+        } else {
+          masterData = masterData.filter(m => m.company !== companyName);
+          localStorage.setItem('naishoku_master', JSON.stringify(masterData));
+          refreshViews();
+        }
+      }
+    }
+
+    // --- 作業編集モーダル制御 ---
     function openEditMasterModal(id) {
       closeAllActionMenus();
       const item = masterData.find(m => m.id == id);
