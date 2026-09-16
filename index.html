@@ -101,7 +101,7 @@
       align-items: center;
     }
 
-    label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-top: 10px; margin-bottom: 3px; }
+    label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-top: 10px; margin-bottom: 4px; }
     input, select, textarea {
       width: 100%;
       padding: 12px;
@@ -330,7 +330,6 @@
       border: 1px solid #fff;
     }
 
-    /* 会社名ヘッダー */
     .company-header-bar {
       background: var(--primary-light);
       padding: 10px 12px;
@@ -408,20 +407,17 @@
     .dropdown-menu-item.edit { color: var(--primary); }
     .dropdown-menu-item.delete { color: var(--danger); }
 
-    /* 表示年月の枠崩れ防止スタイル */
-    .month-filter-wrap {
+    .month-filter-block {
+      margin-top: 14px;
+      margin-bottom: 10px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-top: 12px;
-      margin-bottom: 6px;
+      gap: 8px;
     }
-    .month-filter-header {
+    .month-filter-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
     }
 
     .calc-box {
@@ -531,9 +527,8 @@
       <label style="margin-top:0;">検索</label>
       <input type="text" id="history-search-box" placeholder="キーワードを入力..." oninput="renderHistory()">
 
-      <!-- 表示年月（貫通防止修正） -->
-      <div class="month-filter-wrap">
-        <div class="month-filter-header">
+      <div class="month-filter-block">
+        <div class="month-filter-row">
           <label style="margin:0; font-size:0.95rem; font-weight:800;">表示年月</label>
           <div>
             <button class="btn-sub" id="btn-view-list" onclick="setInvoiceView('list')" style="background:#2563eb; color:#fff;">一覧</button>
@@ -812,7 +807,7 @@
     </div>
   </div>
 
-  <!-- モーダル7: 伝票記録の編集モーダル -->
+  <!-- モーダル7: 伝票記録の編集モーダル（メモ入力欄を追加） -->
   <div id="edit-record-modal" class="app-modal" onclick="closeEditRecordModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">伝票記録の編集</div>
@@ -832,6 +827,10 @@
 
         <label>作業個数 (数量)</label>
         <input type="number" id="edit-record-qty" min="1" step="1" oninput="calcEditRecordSubtotal()">
+
+        <!-- メモ追加欄 -->
+        <label>メモ・備考</label>
+        <textarea id="edit-record-note" rows="2" placeholder="納品時の特記事項やメモなど..."></textarea>
 
         <div class="total-banner">
           <span style="font-size:0.85rem; font-weight:700; color:var(--text-sub);">計算後合計金額</span>
@@ -936,6 +935,7 @@
       recordData = JSON.parse(localStorage.getItem('naishoku_records')) || [];
       memoData = JSON.parse(localStorage.getItem('naishoku_memos')) || {};
       reminderData = JSON.parse(localStorage.getItem('naishoku_reminders')) || [];
+      selectedTodayTasks = JSON.parse(localStorage.getItem('naishoku_selected_today')) || [];
     }
 
     function handleCloudAuth() {
@@ -1026,7 +1026,6 @@
       }
     }
 
-    // --- 3点リーダーメニュー開閉制御 ---
     function toggleActionMenu(event, id) {
       event.stopPropagation();
       const targetMenu = document.getElementById(`menu-${id}`);
@@ -1043,7 +1042,6 @@
       });
     }
 
-    // --- 画像リサイズ処理 ---
     function compressImageFile(file, callback) {
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -1188,12 +1186,13 @@
       }
 
       checkedBoxes.forEach(chk => {
-        const item = masterData.find(m => m.id == chk.value);
-        if (item && !selectedTodayTasks.some(st => st.id == item.id)) {
+        const item = masterData.find(m => String(m.id) === String(chk.value));
+        if (item && !selectedTodayTasks.some(st => String(st.id) === String(item.id))) {
           selectedTodayTasks.push(item);
         }
       });
 
+      localStorage.setItem('naishoku_selected_today', JSON.stringify(selectedTodayTasks));
       closeTopModal();
       switchNav('record');
     }
@@ -1201,7 +1200,7 @@
     // --- タブ2: 今日の記録 ---
     function renderTodayTaskCards() {
       const container = document.getElementById('selected-tasks-container');
-      if (selectedTodayTasks.length === 0) {
+      if (!selectedTodayTasks || selectedTodayTasks.length === 0) {
         container.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">選択された作業がありません。<br>「トップから選ぶ」ボタンから選択してください。</div>';
         return;
       }
@@ -1222,12 +1221,12 @@
               ` : ''}
             </div>
 
-            <!-- 今日の記録：作業カード右上の︙メニュー -->
+            <!-- 右上の︙メニュー -->
             <div class="action-menu-container" style="position:absolute; top:8px; right:8px;" onclick="event.stopPropagation()">
               <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'today-${t.id}')" title="メニュー">︙</button>
               <div class="dropdown-action-menu" id="menu-today-${t.id}">
                 <button class="dropdown-menu-item edit" onclick="openEditMasterModal('${t.id}')">✏️ 編集</button>
-                <button class="dropdown-menu-item delete" onclick="removeTodayTaskItem(${idx})">🗑️ 削除</button>
+                <button class="dropdown-menu-item delete" onclick="removeTodayTaskItem(${idx})">🗑️ 外す</button>
               </div>
             </div>
           </div>
@@ -1238,6 +1237,7 @@
     function removeTodayTaskItem(index) {
       closeAllActionMenus();
       selectedTodayTasks.splice(index, 1);
+      localStorage.setItem('naishoku_selected_today', JSON.stringify(selectedTodayTasks));
       renderTodayTaskCards();
     }
 
@@ -1284,6 +1284,7 @@
         price: currentRecordTarget.price,
         qty,
         total,
+        note: currentRecordTarget.note || '', // 作業登録時のメモを引き継ぎ
         createdAt: new Date().toISOString()
       };
 
@@ -1328,7 +1329,7 @@
 
       let filtered = recordData.filter(r => {
         const matchMonth = r.date && r.date.startsWith(month);
-        const matchKey = isMatch(r.company, searchKey) || isMatch(r.task, searchKey) || isMatch(r.date, searchKey);
+        const matchKey = isMatch(r.company, searchKey) || isMatch(r.task, searchKey) || isMatch(r.date, searchKey) || isMatch(r.note, searchKey);
         return matchMonth && matchKey;
       });
 
@@ -1351,11 +1352,12 @@
         }
 
         list.innerHTML = filtered.map(r => `
-          <div style="border-bottom:1px solid #e2e8f0; padding:12px 0; display:flex; justify-content:space-between; align-items:center; position:relative;">
-            <div style="flex:1;">
+          <div style="border-bottom:1px solid #e2e8f0; padding:12px 0; display:flex; justify-content:space-between; align-items:flex-start; position:relative;">
+            <div style="flex:1; padding-right:12px;">
               <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">${r.date} / ${r.company}</div>
               <div style="font-weight:800; font-size:1.1rem;">${r.task}</div>
               <div style="font-size:0.95rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
+              ${r.note ? `<div style="font-size:0.85rem; color:var(--text-sub); margin-top:4px; white-space:pre-wrap; background:#f8fafc; padding:4px 8px; border-radius:6px; border-left:3px solid #cbd5e1;">📝 ${r.note}</div>` : ''}
             </div>
             
             <div style="display:flex; align-items:center; gap:8px;">
@@ -1380,7 +1382,7 @@
     // --- 伝票記録の編集モーダル処理 ---
     function openEditRecordModal(id) {
       closeAllActionMenus();
-      const rec = recordData.find(r => r.id == id);
+      const rec = recordData.find(r => String(r.id) === String(id));
       if (!rec) return;
 
       document.getElementById('edit-record-id').value = rec.id;
@@ -1389,6 +1391,7 @@
       document.getElementById('edit-record-task').value = rec.task || '';
       document.getElementById('edit-record-price').value = rec.price || 0;
       document.getElementById('edit-record-qty').value = rec.qty || 0;
+      document.getElementById('edit-record-note').value = rec.note || '';
       calcEditRecordSubtotal();
 
       document.getElementById('edit-record-modal').classList.add('active');
@@ -1410,6 +1413,7 @@
       const date = document.getElementById('edit-record-date').value;
       const price = parseFloat(document.getElementById('edit-record-price').value);
       const qty = parseFloat(document.getElementById('edit-record-qty').value);
+      const note = document.getElementById('edit-record-note').value.trim();
 
       if (!date || isNaN(price) || isNaN(qty) || qty <= 0) {
         alert('日付、単価、個数を正しく入力してください');
@@ -1417,12 +1421,12 @@
       }
 
       const total = Math.round(price * qty);
-      const updated = { date, price, qty, total };
+      const updated = { date, price, qty, total, note };
 
       if (currentUser && db) {
         await db.collection('users').doc(currentUser.uid).collection('records').doc(id).update(updated);
       } else {
-        const idx = recordData.findIndex(r => r.id == id);
+        const idx = recordData.findIndex(r => String(r.id) === String(id));
         if (idx !== -1) {
           recordData[idx] = { ...recordData[idx], ...updated };
           localStorage.setItem('naishoku_records', JSON.stringify(recordData));
@@ -1501,11 +1505,12 @@
         container.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">この日の記録はありません</div>';
       } else {
         container.innerHTML = items.map(r => `
-          <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:center;">
-            <div>
+          <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="flex:1; padding-right:8px;">
               <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">${r.company}</div>
               <div style="font-weight:800; font-size:1.05rem;">${r.task}</div>
               <div style="font-size:0.9rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
+              ${r.note ? `<div style="font-size:0.8rem; color:var(--text-sub); margin-top:2px;">📝 ${r.note}</div>` : ''}
             </div>
             <div style="font-size:1.15rem; font-weight:900; color:var(--accent);">¥${(r.total || 0).toLocaleString()}</div>
           </div>
@@ -1524,7 +1529,7 @@
         if (currentUser && db) {
           await db.collection('users').doc(currentUser.uid).collection('records').doc(id).delete();
         } else {
-          recordData = recordData.filter(r => r.id != id);
+          recordData = recordData.filter(r => String(r.id) !== String(id));
           localStorage.setItem('naishoku_records', JSON.stringify(recordData));
           renderHistory();
         }
@@ -1698,7 +1703,6 @@
       `).join('');
     }
 
-    // --- 会社名編集モーダル制御 ---
     function openEditCompanyModal(oldName) {
       closeAllActionMenus();
       document.getElementById('edit-old-company-name').value = oldName;
@@ -1744,6 +1748,7 @@
       selectedTodayTasks.forEach(task => {
         if (task.company === oldName) task.company = newName;
       });
+      localStorage.setItem('naishoku_selected_today', JSON.stringify(selectedTodayTasks));
       renderTodayTaskCards();
 
       closeEditCompanyModal();
@@ -1769,10 +1774,9 @@
       }
     }
 
-    // --- 作業編集モーダル制御 ---
     function openEditMasterModal(id) {
       closeAllActionMenus();
-      const item = masterData.find(m => m.id == id);
+      const item = masterData.find(m => String(m.id) === String(id));
       if (!item) return;
 
       document.getElementById('edit-master-id').value = item.id;
@@ -1853,7 +1857,7 @@
       if (currentUser && db) {
         await db.collection('users').doc(currentUser.uid).collection('masters').doc(id).update(updatedData);
       } else {
-        const idx = masterData.findIndex(m => m.id == id);
+        const idx = masterData.findIndex(m => String(m.id) === String(id));
         if (idx !== -1) {
           masterData[idx] = { ...masterData[idx], ...updatedData };
           localStorage.setItem('naishoku_master', JSON.stringify(masterData));
@@ -1861,9 +1865,10 @@
         }
       }
 
-      const todayIdx = selectedTodayTasks.findIndex(t => t.id == id);
+      const todayIdx = selectedTodayTasks.findIndex(t => String(t.id) === String(id));
       if (todayIdx !== -1) {
         selectedTodayTasks[todayIdx] = { id, ...updatedData };
+        localStorage.setItem('naishoku_selected_today', JSON.stringify(selectedTodayTasks));
         renderTodayTaskCards();
       }
 
@@ -1886,7 +1891,7 @@
         if (currentUser && db) {
           await db.collection('users').doc(currentUser.uid).collection('masters').doc(id).delete();
         } else {
-          masterData = masterData.filter(m => m.id != id);
+          masterData = masterData.filter(m => String(m.id) !== String(id));
           localStorage.setItem('naishoku_master', JSON.stringify(masterData));
           refreshViews();
         }
@@ -1996,7 +2001,7 @@
     }
 
     async function toggleReminderDone(id) {
-      const item = reminderData.find(r => r.id == id);
+      const item = reminderData.find(r => String(r.id) === String(id));
       if (!item) return;
 
       if (currentUser && db) {
@@ -2013,14 +2018,13 @@
         if (currentUser && db) {
           await db.collection('users').doc(currentUser.uid).collection('reminders').doc(id).delete();
         } else {
-          reminderData = reminderData.filter(r => r.id != id);
+          reminderData = reminderData.filter(r => String(r.id) !== String(id));
           localStorage.setItem('naishoku_reminders', JSON.stringify(reminderData));
           renderReminders();
         }
       }
     }
 
-    // --- 端末バックアップ・復元処理 ---
     function exportLocalData() {
       const backup = {
         master: JSON.parse(localStorage.getItem('naishoku_master')) || [],
