@@ -52,12 +52,6 @@
       outline: none;
     }
     body { background-color: var(--bg); color: var(--text-main); padding-bottom: 85px; font-size: 18px; line-height: 1.4; }
-    
-    /* モーダル表示時に背面スクロールやバウンド移動を防止 */
-    body.modal-open {
-      overflow: hidden !important;
-      touch-action: none !important;
-    }
 
     header {
       background-color: #f1f5f9;
@@ -169,7 +163,6 @@
     }
     .company-tap-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
 
-    /* モーダル（フワフワ移動・スクロールブレ防止固定） */
     .app-modal {
       display: none;
       position: fixed;
@@ -179,8 +172,6 @@
       justify-content: center;
       align-items: center;
       padding: 16px;
-      touch-action: none;
-      overscroll-behavior: contain;
     }
     .app-modal.active { display: flex; }
     .modal-box {
@@ -192,8 +183,6 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       display: flex;
       flex-direction: column;
-      touch-action: auto;
-      overscroll-behavior: contain;
     }
     .modal-header {
       font-size: 1.2rem;
@@ -202,16 +191,10 @@
       border-bottom: 2px solid var(--primary-light);
       padding-bottom: 8px;
       margin-bottom: 12px;
-      flex-shrink: 0;
     }
-    .modal-body { 
-      overflow-y: auto; 
-      flex: 1; 
-      margin-bottom: 12px; 
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-    }
+    .modal-body { overflow-y: auto; flex: 1; margin-bottom: 12px; }
 
+    /* 今日の記録カード */
     .task-record-card {
       background: #fff;
       border: 1.5px solid var(--border);
@@ -348,6 +331,7 @@
       border: 1px solid #fff;
     }
 
+    /* 会社名ヘッダー */
     .company-header-bar {
       background: var(--primary-light);
       padding: 10px 12px;
@@ -425,6 +409,7 @@
     .dropdown-menu-item.edit { color: var(--primary); }
     .dropdown-menu-item.delete { color: var(--danger); }
 
+    /* 表示年月の枠崩れ・貫通防止レイアウト */
     .month-filter-block {
       margin-top: 14px;
       margin-bottom: 10px;
@@ -545,6 +530,7 @@
       <label style="margin-top:0;">検索</label>
       <input type="text" id="history-search-box" placeholder="キーワードを入力..." oninput="renderHistory()">
 
+      <!-- 表示年月（枠貫通の修正ブロック） -->
       <div class="month-filter-block">
         <div class="month-filter-row">
           <label style="margin:0; font-size:0.95rem; font-weight:800;">表示年月</label>
@@ -656,7 +642,7 @@
 
           <button class="calc-btn" onclick="calcInput('4')">4</button>
           <button class="calc-btn" onclick="calcInput('5')">5</button>
-          <button class="calc-btn op" onclick="calcInput('6')">6</button>
+          <button class="calc-btn" onclick="calcInput('6')">6</button>
           <button class="calc-btn op" onclick="calcInput('-')">-</button>
 
           <button class="calc-btn" onclick="calcInput('1')">1</button>
@@ -703,6 +689,7 @@
       <div id="reminder-list"></div>
     </div>
 
+    <!-- 端末内バックアップ・復元 -->
     <div class="card">
       <div class="card-title">データ管理（端末保存のバックアップ）</div>
       <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:10px;">
@@ -845,9 +832,6 @@
         <label>作業個数 (数量)</label>
         <input type="number" id="edit-record-qty" min="1" step="1" oninput="calcEditRecordSubtotal()">
 
-        <label>メモ・備考</label>
-        <textarea id="edit-record-note" rows="2" placeholder="納品時の特記事項やメモなど..."></textarea>
-
         <div class="total-banner">
           <span style="font-size:0.85rem; font-weight:700; color:var(--text-sub);">計算後合計金額</span>
           <span class="amount">¥<span id="edit-record-subtotal">0</span></span>
@@ -890,19 +874,6 @@
     let historySortType = 'date';
     let currentInvoiceView = 'list';
     let editingMasterImages = [];
-
-    // モーダル表示時の画面ロック用関数
-    function setModalLock(isOpen) {
-      if (isOpen) {
-        document.body.classList.add('modal-open');
-      } else {
-        // まだ他に開いているモーダルがなければ解除
-        const activeModals = document.querySelectorAll('.app-modal.active');
-        if (activeModals.length === 0) {
-          document.body.classList.remove('modal-open');
-        }
-      }
-    }
 
     function normalizeKana(str) {
       if (!str) return '';
@@ -1201,12 +1172,10 @@
       }).join('');
 
       document.getElementById('top-detail-modal').classList.add('active');
-      setModalLock(true);
     }
 
     function closeTopModal() {
       document.getElementById('top-detail-modal').classList.remove('active');
-      setModalLock(false);
     }
 
     function confirmTopSelection() {
@@ -1280,12 +1249,10 @@
       document.getElementById('rec-modal-qty').value = 100;
       calcModalSubtotal();
       document.getElementById('record-input-modal').classList.add('active');
-      setModalLock(true);
     }
 
     function closeRecordModal() {
       document.getElementById('record-input-modal').classList.remove('active');
-      setModalLock(false);
     }
 
     function calcModalSubtotal() {
@@ -1317,7 +1284,6 @@
         price: currentRecordTarget.price,
         qty,
         total,
-        note: currentRecordTarget.note || '',
         createdAt: new Date().toISOString()
       };
 
@@ -1362,7 +1328,7 @@
 
       let filtered = recordData.filter(r => {
         const matchMonth = r.date && r.date.startsWith(month);
-        const matchKey = isMatch(r.company, searchKey) || isMatch(r.task, searchKey) || isMatch(r.date, searchKey) || isMatch(r.note, searchKey);
+        const matchKey = isMatch(r.company, searchKey) || isMatch(r.task, searchKey) || isMatch(r.date, searchKey);
         return matchMonth && matchKey;
       });
 
@@ -1385,17 +1351,17 @@
         }
 
         list.innerHTML = filtered.map(r => `
-          <div style="border-bottom:1px solid #e2e8f0; padding:12px 0; display:flex; justify-content:space-between; align-items:flex-start; position:relative;">
-            <div style="flex:1; padding-right:12px;">
+          <div style="border-bottom:1px solid #e2e8f0; padding:12px 0; display:flex; justify-content:space-between; align-items:center; position:relative;">
+            <div style="flex:1;">
               <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">${r.date} / ${r.company}</div>
               <div style="font-weight:800; font-size:1.1rem;">${r.task}</div>
               <div style="font-size:0.95rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
-              ${r.note ? `<div style="font-size:0.85rem; color:var(--text-sub); margin-top:4px; white-space:pre-wrap; background:#f8fafc; padding:4px 8px; border-radius:6px; border-left:3px solid #cbd5e1;">📝 ${r.note}</div>` : ''}
             </div>
             
             <div style="display:flex; align-items:center; gap:8px;">
               <div style="font-size:1.25rem; font-weight:900; color:var(--accent);">¥${(r.total || 0).toLocaleString()}</div>
               
+              <!-- 伝票作業一覧の右端︙メニュー -->
               <div class="action-menu-container">
                 <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'rec-${r.id}')" title="伝票メニュー">︙</button>
                 <div class="dropdown-action-menu" id="menu-rec-${r.id}">
@@ -1422,16 +1388,13 @@
       document.getElementById('edit-record-task').value = rec.task || '';
       document.getElementById('edit-record-price').value = rec.price || 0;
       document.getElementById('edit-record-qty').value = rec.qty || 0;
-      document.getElementById('edit-record-note').value = rec.note || '';
       calcEditRecordSubtotal();
 
       document.getElementById('edit-record-modal').classList.add('active');
-      setModalLock(true);
     }
 
     function closeEditRecordModal() {
       document.getElementById('edit-record-modal').classList.remove('active');
-      setModalLock(false);
     }
 
     function calcEditRecordSubtotal() {
@@ -1446,7 +1409,6 @@
       const date = document.getElementById('edit-record-date').value;
       const price = parseFloat(document.getElementById('edit-record-price').value);
       const qty = parseFloat(document.getElementById('edit-record-qty').value);
-      const note = document.getElementById('edit-record-note').value.trim();
 
       if (!date || isNaN(price) || isNaN(qty) || qty <= 0) {
         alert('日付、単価、個数を正しく入力してください');
@@ -1454,7 +1416,7 @@
       }
 
       const total = Math.round(price * qty);
-      const updated = { date, price, qty, total, note };
+      const updated = { date, price, qty, total };
 
       if (currentUser && db) {
         await db.collection('users').doc(currentUser.uid).collection('records').doc(id).update(updated);
@@ -1538,24 +1500,21 @@
         container.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">この日の記録はありません</div>';
       } else {
         container.innerHTML = items.map(r => `
-          <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:flex-start;">
-            <div style="flex:1; padding-right:8px;">
+          <div style="border-bottom:1px solid #e2e8f0; padding:10px 0; display:flex; justify-content:space-between; align-items:center;">
+            <div>
               <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">${r.company}</div>
               <div style="font-weight:800; font-size:1.05rem;">${r.task}</div>
               <div style="font-size:0.9rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
-              ${r.note ? `<div style="font-size:0.8rem; color:var(--text-sub); margin-top:2px;">📝 ${r.note}</div>` : ''}
             </div>
             <div style="font-size:1.15rem; font-weight:900; color:var(--accent);">¥${(r.total || 0).toLocaleString()}</div>
           </div>
         `).join('');
       }
       document.getElementById('cal-detail-modal').classList.add('active');
-      setModalLock(true);
     }
 
     function closeCalModal() {
       document.getElementById('cal-detail-modal').classList.remove('active');
-      setModalLock(false);
     }
 
     async function deleteRecordItem(id) {
@@ -1743,12 +1702,10 @@
       document.getElementById('edit-old-company-name').value = oldName;
       document.getElementById('edit-new-company-name').value = oldName;
       document.getElementById('edit-company-modal').classList.add('active');
-      setModalLock(true);
     }
 
     function closeEditCompanyModal() {
       document.getElementById('edit-company-modal').classList.remove('active');
-      setModalLock(false);
     }
 
     async function submitEditCompanyName() {
@@ -1826,12 +1783,10 @@
       renderEditImagePreviews();
 
       document.getElementById('edit-master-modal').classList.add('active');
-      setModalLock(true);
     }
 
     function closeEditMasterModal() {
       document.getElementById('edit-master-modal').classList.remove('active');
-      setModalLock(false);
     }
 
     function renderEditImagePreviews() {
@@ -1918,12 +1873,10 @@
     function openImageViewer(src) {
       document.getElementById('img-viewer-src').src = src;
       document.getElementById('img-viewer-modal').classList.add('active');
-      setModalLock(true);
     }
 
     function closeImageViewer() {
       document.getElementById('img-viewer-modal').classList.remove('active');
-      setModalLock(false);
     }
 
     async function deleteMasterItem(id) {
