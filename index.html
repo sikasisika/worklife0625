@@ -64,7 +64,6 @@
       line-height: 1.4; 
     }
 
-    /* モーダル表示時に背面画面のスクロール・揺れを固定 */
     body.modal-open {
       overflow: hidden !important;
       position: fixed;
@@ -136,7 +135,6 @@
     }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
 
-    /* iPhoneのdate/month入力欄の横幅突き抜け＆横スクロールを強制完全封鎖 */
     input[type="date"],
     input[type="month"] {
       display: block !important;
@@ -201,7 +199,6 @@
     }
     .company-tap-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
 
-    /* モーダル：画面中央固定＆横揺れ完全排除 */
     .app-modal {
       display: none;
       position: fixed;
@@ -475,6 +472,33 @@
       align-items: center;
     }
 
+    /* 伝票作業一覧：日付グループブロック */
+    .history-date-group {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .history-date-header {
+      background: #f1f5f9;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-date-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text-sub);
+    }
+    .history-date-total {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
     .calc-box {
       background: #1e293b;
       padding: 12px;
@@ -594,7 +618,7 @@
       </div>
 
       <div class="total-banner">
-        <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-sub);">当月合計</span>
+        <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-sub);" id="invoice-total-label">当月合計</span>
         <span class="amount">¥<span id="month-total-amount">0</span></span>
       </div>
 
@@ -612,8 +636,18 @@
       <div id="invoice-month-memo-text" style="font-size:0.95rem; color:#713f12; white-space:pre-wrap;"></div>
     </div>
 
+    <!-- 作業一覧（🗓️日付選択付き） -->
     <div class="card" id="history-list-view">
-      <div class="card-title">作業一覧</div>
+      <div class="card-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>作業一覧</span>
+          <span id="specific-date-badge" style="display:none; font-size:0.8rem; background:var(--primary); color:#fff; padding:2px 8px; border-radius:12px;"></span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-sub" id="btn-clear-date-filter" onclick="clearSpecificDateFilter()" style="display:none; padding:4px 8px; font-size:0.8rem;">解除</button>
+          <button class="btn-sub" onclick="openDateFilterModal()" style="padding:4px 8px; font-size:0.85rem;" title="1日分を選択">🗓️ 日付指定</button>
+        </div>
+      </div>
       <div id="history-items"></div>
     </div>
 
@@ -861,7 +895,7 @@
     </div>
   </div>
 
-  <!-- モーダル7: 伝票記録の編集モーダル（日付入力の横幅を完全ガード） -->
+  <!-- モーダル7: 伝票記録の編集モーダル -->
   <div id="edit-record-modal" class="app-modal" onclick="closeEditRecordModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">伝票記録の編集</div>
@@ -897,6 +931,21 @@
     </div>
   </div>
 
+  <!-- モーダル8: 伝票の日付ピンポイント指定モーダル -->
+  <div id="date-filter-modal" class="app-modal" onclick="closeDateFilterModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">特定の日付を選択</div>
+      <div class="modal-body">
+        <label>日付を選択してください</label>
+        <input type="date" id="specific-date-input">
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-sub" style="flex:1;" onclick="closeDateFilterModal()">キャンセル</button>
+        <button class="btn-main" style="flex:2; margin-top:0;" onclick="applySpecificDateFilter()">この日を表示</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDe2qsA9wEb1z3993Cz2EBJR2LY4GzUibk",
@@ -927,8 +976,8 @@
     let historySortType = 'date';
     let currentInvoiceView = 'list';
     let editingMasterImages = [];
+    let specificSelectedDate = null; // 🗓️ピンポイント選択日付
 
-    // モーダル表示時に背面画面を固定する制御
     let scrollPosition = 0;
     function setModalLock(isOpen) {
       if (isOpen) {
@@ -1293,7 +1342,6 @@
               ` : ''}
             </div>
 
-            <!-- 右上の︙メニュー -->
             <div class="action-menu-container" style="position:absolute; top:8px; right:8px;" onclick="event.stopPropagation()">
               <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'today-${t.id}')" title="メニュー">︙</button>
               <div class="dropdown-action-menu" id="menu-today-${t.id}">
@@ -1370,6 +1418,14 @@
         renderHistory();
       }
 
+      // 伝票へ反映完了後、自動的に今日の記録一覧から除外する
+      const removeIndex = selectedTodayTasks.findIndex(t => String(t.id) === String(currentRecordTarget.id));
+      if (removeIndex !== -1) {
+        selectedTodayTasks.splice(removeIndex, 1);
+        localStorage.setItem('naishoku_selected_today', JSON.stringify(selectedTodayTasks));
+        renderTodayTaskCards();
+      }
+
       closeRecordModal();
       alert(`【伝票に反映しました】\n${currentRecordTarget.company} - ${currentRecordTarget.task}\n¥${currentRecordTarget.price} × ${qty}個 = ¥${total.toLocaleString()}`);
     }
@@ -1395,58 +1451,134 @@
       renderHistory();
     }
 
+    // 🗓️特定日付の選択制御
+    function openDateFilterModal() {
+      const curDate = specificSelectedDate || (document.getElementById('filter-month').value + '-01');
+      document.getElementById('specific-date-input').value = specificSelectedDate || new Date().toISOString().slice(0, 10);
+      document.getElementById('date-filter-modal').classList.add('active');
+      setModalLock(true);
+    }
+
+    function closeDateFilterModal() {
+      document.getElementById('date-filter-modal').classList.remove('active');
+      setModalLock(false);
+    }
+
+    function applySpecificDateFilter() {
+      const d = document.getElementById('specific-date-input').value;
+      if (!d) return;
+      specificSelectedDate = d;
+      closeDateFilterModal();
+      renderHistory();
+    }
+
+    function clearSpecificDateFilter() {
+      specificSelectedDate = null;
+      renderHistory();
+    }
+
     function renderHistory() {
       const month = document.getElementById('filter-month').value;
       const searchKey = document.getElementById('history-search-box').value.trim();
 
       renderInvoiceMemo();
 
+      // 特定日付バッジ＆解除ボタンの表示制御
+      const badge = document.getElementById('specific-date-badge');
+      const clearBtn = document.getElementById('btn-clear-date-filter');
+      const totalLabel = document.getElementById('invoice-total-label');
+
+      if (specificSelectedDate) {
+        badge.innerText = `${specificSelectedDate}`;
+        badge.style.display = 'inline-block';
+        clearBtn.style.display = 'inline-block';
+        totalLabel.innerText = `${specificSelectedDate} の合計`;
+      } else {
+        badge.style.display = 'none';
+        clearBtn.style.display = 'none';
+        totalLabel.innerText = '当月合計';
+      }
+
       let filtered = recordData.filter(r => {
-        const matchMonth = r.date && r.date.startsWith(month);
+        let matchDateCondition = false;
+        if (specificSelectedDate) {
+          matchDateCondition = (r.date === specificSelectedDate);
+        } else {
+          matchDateCondition = r.date && r.date.startsWith(month);
+        }
         const matchKey = isMatch(r.company, searchKey) || isMatch(r.task, searchKey) || isMatch(r.date, searchKey) || isMatch(r.note, searchKey);
-        return matchMonth && matchKey;
+        return matchDateCondition && matchKey;
       });
 
-      const monthTotal = filtered.reduce((sum, r) => sum + (r.total || 0), 0);
-      document.getElementById('month-total-amount').innerText = monthTotal.toLocaleString();
+      const totalAmount = filtered.reduce((sum, r) => sum + (r.total || 0), 0);
+      document.getElementById('month-total-amount').innerText = totalAmount.toLocaleString();
 
       if (currentInvoiceView === 'list') {
-        filtered.sort((a, b) => {
-          if (historySortType === 'date') return (b.date || '').localeCompare(a.date || '');
-          if (historySortType === 'name') return (a.company || '').localeCompare(b.company || '', 'ja');
-          if (historySortType === 'price') return (b.price || 0) - (a.price || 0);
-          if (historySortType === 'qty') return (b.qty || 0) - (a.qty || 0);
-          return 0;
-        });
-
         const list = document.getElementById('history-items');
         if (filtered.length === 0) {
           list.innerHTML = '<div style="padding:20px; text-align:center; color:#94a3b8;">該当する記録がありません</div>';
           return;
         }
 
-        list.innerHTML = filtered.map(r => `
-          <div style="border-bottom:1px solid #e2e8f0; padding:12px 0; display:flex; justify-content:space-between; align-items:flex-start; position:relative;">
-            <div style="flex:1; padding-right:12px;">
-              <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">${r.date} / ${r.company}</div>
-              <div style="font-weight:800; font-size:1.1rem;">${r.task}</div>
-              <div style="font-size:0.95rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
-              ${r.note ? `<div style="font-size:0.85rem; color:var(--text-sub); margin-top:4px; white-space:pre-wrap; background:#f8fafc; padding:4px 8px; border-radius:6px; border-left:3px solid #cbd5e1;">📝 ${r.note}</div>` : ''}
-            </div>
-            
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div style="font-size:1.25rem; font-weight:900; color:var(--accent);">¥${(r.total || 0).toLocaleString()}</div>
-              
-              <div class="action-menu-container">
-                <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'rec-${r.id}')" title="伝票メニュー">︙</button>
-                <div class="dropdown-action-menu" id="menu-rec-${r.id}">
-                  <button class="dropdown-menu-item edit" onclick="openEditRecordModal('${r.id}')">✏️ 編集</button>
-                  <button class="dropdown-menu-item delete" onclick="deleteRecordItem('${r.id}')">🗑️ 削除</button>
-                </div>
+        // 日付ごとにグループ化
+        const groupedByDate = {};
+        filtered.forEach(r => {
+          const d = r.date || '日付未設定';
+          if (!groupedByDate[d]) groupedByDate[d] = [];
+          groupedByDate[d].push(r);
+        });
+
+        // 日付キーの並び替え
+        const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+          if (historySortType === 'date') return b.localeCompare(a);
+          return b.localeCompare(a);
+        });
+
+        list.innerHTML = sortedDates.map(dateKey => {
+          const groupItems = groupedByDate[dateKey];
+          // 各グループ内の並び替え
+          groupItems.sort((a, b) => {
+            if (historySortType === 'name') return (a.company || '').localeCompare(b.company || '', 'ja');
+            if (historySortType === 'price') return (b.price || 0) - (a.price || 0);
+            if (historySortType === 'qty') return (b.qty || 0) - (a.qty || 0);
+            return (b.createdAt || '').localeCompare(a.createdAt || '');
+          });
+
+          const groupTotal = groupItems.reduce((sum, item) => sum + (item.total || 0), 0);
+
+          return `
+            <div class="history-date-group">
+              <div class="history-date-header">
+                <span class="history-date-title">📅 ${dateKey}</span>
+                <span class="history-date-total">¥${groupTotal.toLocaleString()}</span>
+              </div>
+              <div style="padding:4px 12px;">
+                ${groupItems.map(r => `
+                  <div style="border-bottom:1px solid #f1f5f9; padding:12px 0; display:flex; justify-content:space-between; align-items:flex-start; position:relative;">
+                    <div style="flex:1; padding-right:12px;">
+                      <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">${r.company}</div>
+                      <div style="font-weight:800; font-size:1.1rem; color:var(--primary);">${r.task}</div>
+                      <div style="font-size:0.95rem; color:#475569;">¥${r.price} × ${r.qty}個</div>
+                      ${r.note ? `<div style="font-size:0.85rem; color:var(--text-sub); margin-top:4px; white-space:pre-wrap; background:#f8fafc; padding:4px 8px; border-radius:6px; border-left:3px solid #cbd5e1;">📝 ${r.note}</div>` : ''}
+                    </div>
+                    
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <div style="font-size:1.25rem; font-weight:900; color:var(--accent);">¥${(r.total || 0).toLocaleString()}</div>
+                      
+                      <div class="action-menu-container">
+                        <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'rec-${r.id}')" title="伝票メニュー">︙</button>
+                        <div class="dropdown-action-menu" id="menu-rec-${r.id}">
+                          <button class="dropdown-menu-item edit" onclick="openEditRecordModal('${r.id}')">✏️ 編集</button>
+                          <button class="dropdown-menu-item delete" onclick="deleteRecordItem('${r.id}')">🗑️ 削除</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
             </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } else {
         renderCalendar(month, filtered);
       }
