@@ -52,10 +52,13 @@
       outline: none;
     }
     body { background-color: var(--bg); color: var(--text-main); padding-bottom: 85px; font-size: 18px; line-height: 1.4; }
-    
-    /* モーダル表示時に背面スクロールやバウンド移動を防止 */
+
+    /* モーダル表示時に背面画面のスクロール・揺れを完全固定 */
     body.modal-open {
       overflow: hidden !important;
+      position: fixed;
+      width: 100%;
+      height: 100%;
       touch-action: none !important;
     }
 
@@ -96,6 +99,7 @@
       padding: 14px;
       margin-bottom: 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      overflow: hidden;
     }
     .card-title {
       font-size: 1.1rem;
@@ -118,6 +122,15 @@
       background-color: #fff;
     }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+
+    /* iPhoneのinput[type=month]の枠飛び出し完全防止 */
+    input[type="month"] {
+      height: 48px;
+      line-height: 48px;
+      padding: 8px 12px;
+      -webkit-appearance: none;
+      display: block;
+    }
 
     button {
       cursor: pointer;
@@ -169,11 +182,14 @@
     }
     .company-tap-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
 
-    /* モーダル（フワフワ移動・スクロールブレ防止固定） */
+    /* モーダル：画面中央にガチッと固定して揺れを防止 */
     .app-modal {
       display: none;
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0,0,0,0.55);
       z-index: 1000;
       justify-content: center;
@@ -186,13 +202,14 @@
     .modal-box {
       background: #fff;
       width: 92%;
-      max-height: 82vh;
+      max-height: 80vh;
       border-radius: 12px;
       padding: 18px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       display: flex;
       flex-direction: column;
-      touch-action: auto;
+      position: relative;
+      touch-action: pan-y;
       overscroll-behavior: contain;
     }
     .modal-header {
@@ -204,14 +221,16 @@
       margin-bottom: 12px;
       flex-shrink: 0;
     }
-    .modal-body { 
-      overflow-y: auto; 
-      flex: 1; 
-      margin-bottom: 12px; 
+    .modal-body {
+      overflow-y: auto;
+      flex: 1;
+      margin-bottom: 12px;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
+      overscroll-behavior: contain;
     }
 
+    /* 今日の記録カード */
     .task-record-card {
       background: #fff;
       border: 1.5px solid var(--border);
@@ -425,17 +444,17 @@
     .dropdown-menu-item.edit { color: var(--primary); }
     .dropdown-menu-item.delete { color: var(--danger); }
 
-    .month-filter-block {
-      margin-top: 14px;
-      margin-bottom: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    /* 表示年月：枠外貫通防止のための専用ラッパー */
+    .month-picker-container {
+      margin-top: 12px;
+      margin-bottom: 8px;
+      width: 100%;
     }
-    .month-filter-row {
+    .month-picker-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 6px;
     }
 
     .calc-box {
@@ -545,8 +564,9 @@
       <label style="margin-top:0;">検索</label>
       <input type="text" id="history-search-box" placeholder="キーワードを入力..." oninput="renderHistory()">
 
-      <div class="month-filter-block">
-        <div class="month-filter-row">
+      <!-- 表示年月：枠外突き抜け防止ブロック -->
+      <div class="month-picker-container">
+        <div class="month-picker-header">
           <label style="margin:0; font-size:0.95rem; font-weight:800;">表示年月</label>
           <div>
             <button class="btn-sub" id="btn-view-list" onclick="setInvoiceView('list')" style="background:#2563eb; color:#fff;">一覧</button>
@@ -656,7 +676,7 @@
 
           <button class="calc-btn" onclick="calcInput('4')">4</button>
           <button class="calc-btn" onclick="calcInput('5')">5</button>
-          <button class="calc-btn op" onclick="calcInput('6')">6</button>
+          <button class="calc-btn" onclick="calcInput('6')">6</button>
           <button class="calc-btn op" onclick="calcInput('-')">-</button>
 
           <button class="calc-btn" onclick="calcInput('1')">1</button>
@@ -891,15 +911,19 @@
     let currentInvoiceView = 'list';
     let editingMasterImages = [];
 
-    // モーダル表示時の画面ロック用関数
+    // モーダル表示時に背面画面を完全に固定する制御
+    let scrollPosition = 0;
     function setModalLock(isOpen) {
       if (isOpen) {
+        scrollPosition = window.pageYOffset;
         document.body.classList.add('modal-open');
+        document.body.style.top = `-${scrollPosition}px`;
       } else {
-        // まだ他に開いているモーダルがなければ解除
         const activeModals = document.querySelectorAll('.app-modal.active');
         if (activeModals.length === 0) {
           document.body.classList.remove('modal-open');
+          document.body.style.top = '';
+          window.scrollTo(0, scrollPosition);
         }
       }
     }
@@ -1252,7 +1276,6 @@
               ` : ''}
             </div>
 
-            <!-- 右上の︙メニュー -->
             <div class="action-menu-container" style="position:absolute; top:8px; right:8px;" onclick="event.stopPropagation()">
               <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'today-${t.id}')" title="メニュー">︙</button>
               <div class="dropdown-action-menu" id="menu-today-${t.id}">
