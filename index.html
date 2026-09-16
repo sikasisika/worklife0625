@@ -44,16 +44,27 @@
     }
 
     * {
-      box-sizing: border-box;
+      box-sizing: border-box !important;
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
       -webkit-tap-highlight-color: transparent !important;
       outline: none;
     }
-    body { background-color: var(--bg); color: var(--text-main); padding-bottom: 85px; font-size: 18px; line-height: 1.4; }
+    
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden !important;
+    }
+    body { 
+      background-color: var(--bg); 
+      color: var(--text-main); 
+      padding-bottom: 85px; 
+      font-size: 18px; 
+      line-height: 1.4; 
+    }
 
-    /* モーダル表示時に背面画面のスクロール・揺れを完全固定 */
+    /* モーダル表示時に背面画面のスクロール・揺れを固定 */
     body.modal-open {
       overflow: hidden !important;
       position: fixed;
@@ -99,7 +110,8 @@
       padding: 14px;
       margin-bottom: 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      overflow: hidden;
+      width: 100%;
+      overflow: hidden !important;
     }
     .card-title {
       font-size: 1.1rem;
@@ -114,6 +126,7 @@
     label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-top: 10px; margin-bottom: 4px; }
     input, select, textarea {
       width: 100%;
+      max-width: 100%;
       padding: 12px;
       border-radius: 8px;
       border: 1.5px solid var(--border);
@@ -123,13 +136,19 @@
     }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
 
-    /* iPhoneのinput[type=month]の枠飛び出し完全防止 */
+    /* iPhoneのdate/month入力欄の横幅突き抜け＆横スクロールを強制完全封鎖 */
+    input[type="date"],
     input[type="month"] {
-      height: 48px;
-      line-height: 48px;
-      padding: 8px 12px;
-      -webkit-appearance: none;
-      display: block;
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      height: 48px !important;
+      line-height: 24px !important;
+      padding: 10px 12px !important;
+      -webkit-appearance: none !important;
+      border-radius: 8px !important;
+      background-color: #fff !important;
     }
 
     button {
@@ -182,33 +201,31 @@
     }
     .company-tap-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
 
-    /* モーダル：画面中央にガチッと固定して揺れを防止 */
+    /* モーダル：画面中央固定＆横揺れ完全排除 */
     .app-modal {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0,0,0,0.55);
       z-index: 1000;
       justify-content: center;
       align-items: center;
       padding: 16px;
       touch-action: none;
-      overscroll-behavior: contain;
+      overflow: hidden !important;
     }
     .app-modal.active { display: flex; }
     .modal-box {
       background: #fff;
       width: 92%;
-      max-height: 80vh;
+      max-width: 440px;
+      max-height: 82vh;
       border-radius: 12px;
       padding: 18px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       display: flex;
       flex-direction: column;
-      position: relative;
+      overflow-x: hidden !important;
       touch-action: pan-y;
       overscroll-behavior: contain;
     }
@@ -223,6 +240,7 @@
     }
     .modal-body {
       overflow-y: auto;
+      overflow-x: hidden !important;
       flex: 1;
       margin-bottom: 12px;
       -webkit-overflow-scrolling: touch;
@@ -230,7 +248,6 @@
       overscroll-behavior: contain;
     }
 
-    /* 今日の記録カード */
     .task-record-card {
       background: #fff;
       border: 1.5px solid var(--border);
@@ -444,17 +461,18 @@
     .dropdown-menu-item.edit { color: var(--primary); }
     .dropdown-menu-item.delete { color: var(--danger); }
 
-    /* 表示年月：枠外貫通防止のための専用ラッパー */
-    .month-picker-container {
+    .month-filter-block {
       margin-top: 12px;
       margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       width: 100%;
     }
-    .month-picker-header {
+    .month-filter-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
     }
 
     .calc-box {
@@ -564,9 +582,8 @@
       <label style="margin-top:0;">検索</label>
       <input type="text" id="history-search-box" placeholder="キーワードを入力..." oninput="renderHistory()">
 
-      <!-- 表示年月：枠外突き抜け防止ブロック -->
-      <div class="month-picker-container">
-        <div class="month-picker-header">
+      <div class="month-filter-block">
+        <div class="month-filter-row">
           <label style="margin:0; font-size:0.95rem; font-weight:800;">表示年月</label>
           <div>
             <button class="btn-sub" id="btn-view-list" onclick="setInvoiceView('list')" style="background:#2563eb; color:#fff;">一覧</button>
@@ -844,7 +861,7 @@
     </div>
   </div>
 
-  <!-- モーダル7: 伝票記録の編集モーダル -->
+  <!-- モーダル7: 伝票記録の編集モーダル（日付入力の横幅を完全ガード） -->
   <div id="edit-record-modal" class="app-modal" onclick="closeEditRecordModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">伝票記録の編集</div>
@@ -911,7 +928,7 @@
     let currentInvoiceView = 'list';
     let editingMasterImages = [];
 
-    // モーダル表示時に背面画面を完全に固定する制御
+    // モーダル表示時に背面画面を固定する制御
     let scrollPosition = 0;
     function setModalLock(isOpen) {
       if (isOpen) {
@@ -1276,6 +1293,7 @@
               ` : ''}
             </div>
 
+            <!-- 右上の︙メニュー -->
             <div class="action-menu-container" style="position:absolute; top:8px; right:8px;" onclick="event.stopPropagation()">
               <button class="btn-dots-menu sub" onclick="toggleActionMenu(event, 'today-${t.id}')" title="メニュー">︙</button>
               <div class="dropdown-action-menu" id="menu-today-${t.id}">
